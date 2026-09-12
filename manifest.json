@@ -1,0 +1,21 @@
+[
+    {
+        "guid": "066ff97a-0628-4d1d-b256-840f1e25f8df",
+        "name": "Better Posters (Local Quality Fix)",
+        "description": "Fork of Better Posters that renders the quality badge locally from the item's real MediaStream data instead of btttr.cc's externally-sourced (often mismatched) badge.\n",
+        "overview": "Better Posters, with an accurate locally-rendered quality badge",
+        "owner": "YOUR_GITHUB_USERNAME",
+        "category": "MoviesAndShows",
+        "imageUrl": "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/master/Assets/Catalog.png",
+        "versions": [
+            {
+                "version": "1.0.0.0",
+                "changelog": "### Added\n- Quality badge is now rendered locally from the item's real MediaStream data (resolution + HDR/DV/HLG) instead of btttr.cc's own externally-sourced badge.\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/releases/download/1.0.0/better-posters-quality-fix_1.0.0.0.zip",
+                "checksum": "REPLACE_WITH_MD5_OF_THE_ZIP",
+                "timestamp": "REPLACE_WITH_UTC_TIMESTAMP"
+            }
+        ]
+    }
+]

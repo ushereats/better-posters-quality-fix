@@ -1,0 +1,17 @@
+{
+    "extends": ["config:recommended", ":semanticCommits"],
+    "packageRules": [
+        {
+            "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+            "assignees": ["neurekadev"],
+            "labels": ["Type/Dependency"],
+            "automerge": false
+        }
+    ],
+    "vulnerabilityAlerts": {
+        "assignees": ["neurekadev"],
+        "labels": ["Type/Dependency", "Type/Security"],
+        "automerge": true
+    },
+    "osvVulnerabilityAlerts": true
+}

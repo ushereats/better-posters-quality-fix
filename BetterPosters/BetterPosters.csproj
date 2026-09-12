@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>BetterPosters</RootNamespace>
+    <AssemblyName>BetterPosters</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <CodeAnalysisRuleSet>../jellyfin.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      FORK CHANGE: retargeted from Jellyfin 10.11.10 (net9.0) to Jellyfin 12.0
+      (net10.0). Check nuget.org for the exact current stable version string —
+      12.0.0 is likely correct as of Jellyfin 12.0 GA (~Sept 2026), but pin to
+      whatever "dotnet add package Jellyfin.Controller" actually resolves for
+      you, don't assume this string is still current by the time you build.
+    -->
+    <PackageReference Include="Jellyfin.Controller" Version="12.0.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Model" Version="12.0.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      FORK ADDITION: needed to composite a locally-computed quality badge onto
+      the poster downloaded from btttr.cc. Pin to a specific patch version once
+      you've confirmed it builds and runs cleanly on your Jellyfin host — "*"-free
+      exact pins avoid a surprise major bump breaking the build later.
+      Managed/cross-platform, so it won't collide with Jellyfin server's own
+      native SkiaSharp libs in the same process.
+    -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
+    <PackageReference Include="SixLabors.Fonts" Version="2.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SerilogAnalyzer" Version="0.15.0" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="All" />
+    <PackageReference Include="SmartAnalyzers.MultithreadingAnalyzer" Version="1.1.31" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
+  </ItemGroup>
+
+</Project>
