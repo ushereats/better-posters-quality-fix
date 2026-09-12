@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Model.Entities;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -65,38 +67,33 @@ public static class QualityBadgeRenderer
 
     private static string? GetRangeSuffix(MediaStream videoStream)
     {
-        // VideoRangeType is the authoritative field on modern Jellyfin builds.
-        // VideoRange (free-text string, e.g. "HDR"/"SDR") is kept as a fallback
-        // for older metadata that never got VideoRangeType populated.
-        var rangeType = videoStream.VideoRangeType.ToString();
-
-        if (rangeType.Contains("DolbyVision", StringComparison.OrdinalIgnoreCase))
+        // VideoRangeType (Jellyfin.Data.Enums.VideoRangeType) and VideoRange
+        // (Jellyfin.Data.Enums.VideoRange) are both proper enums, not strings —
+        // the original version of this method treated them as text and failed
+        // to compile. VideoRangeType is the more specific/authoritative field;
+        // VideoRange (Hdr/Sdr/Unknown) is the fallback for older records where
+        // VideoRangeType never got populated.
+        switch (videoStream.VideoRangeType)
         {
-            return "DV";
+            case VideoRangeType.DOVI:
+            case VideoRangeType.DOVIWithEL:
+            case VideoRangeType.DOVIWithELHDR10Plus:
+            case VideoRangeType.DOVIWithHDR10:
+            case VideoRangeType.DOVIWithHDR10Plus:
+            case VideoRangeType.DOVIWithHLG:
+            case VideoRangeType.DOVIWithSDR:
+                return "DV";
+            case VideoRangeType.HDR10Plus:
+                return "HDR10+";
+            case VideoRangeType.HDR10:
+                return "HDR";
+            case VideoRangeType.HLG:
+                return "HLG";
+            case VideoRangeType.SDR:
+                return null;
         }
 
-        if (rangeType.Contains("HDR10Plus", StringComparison.OrdinalIgnoreCase))
-        {
-            return "HDR10+";
-        }
-
-        if (rangeType.Contains("HDR", StringComparison.OrdinalIgnoreCase))
-        {
-            return "HDR";
-        }
-
-        if (rangeType.Contains("HLG", StringComparison.OrdinalIgnoreCase))
-        {
-            return "HLG";
-        }
-
-        if (!string.IsNullOrWhiteSpace(videoStream.VideoRange) &&
-            videoStream.VideoRange.Contains("HDR", StringComparison.OrdinalIgnoreCase))
-        {
-            return "HDR";
-        }
-
-        return null;
+        return videoStream.VideoRange == VideoRange.Hdr ? "HDR" : null;
     }
 
     /// <summary>
