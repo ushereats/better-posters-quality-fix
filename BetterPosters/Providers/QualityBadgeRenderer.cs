@@ -93,7 +93,7 @@ public static class QualityBadgeRenderer
                 return null;
         }
 
-        return videoStream.VideoRange == VideoRange.Hdr ? "HDR" : null;
+        return videoStream.VideoRange == VideoRange.HDR ? "HDR" : null;
     }
 
     /// <summary>
