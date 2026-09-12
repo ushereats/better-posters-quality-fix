@@ -93,7 +93,7 @@ public static class QualityBadgeRenderer
                 return null;
         }
 
-        return videoStream.VideoRange == VideoRange.HDR ? "HDR" : null;
+        return videoStream.VideoRange == VideoRange.Hdr ? "HDR" : null;
     }
 
     /// <summary>
@@ -116,29 +116,78 @@ public static class QualityBadgeRenderer
 
         var measured = TextMeasurer.MeasureSize(label, textOptions);
 
-        var paddingX = image.Width * 0.03f;
-        var paddingY = image.Width * 0.03f;
-        var badgePaddingX = image.Width * 0.018f;
-        var badgePaddingY = image.Width * 0.012f;
+        var paddingX = image.Width * 0.035f;
+        var paddingY = image.Width * 0.035f;
+        var badgePaddingX = image.Width * 0.022f;
+        var badgePaddingY = image.Width * 0.014f;
 
         var badgeWidth = measured.Width + (badgePaddingX * 2);
         var badgeHeight = measured.Height + (badgePaddingY * 2);
+        var cornerRadius = badgeHeight * 0.28f;
 
         var badgeX = image.Width - badgeWidth - paddingX;
         var badgeY = paddingY;
 
-        // Plain rectangle rather than a hand-rolled rounded-rect path — kept simple
-        // and dependency-light since this could not be compile-tested in this
-        // environment (see CHANGES.md). Swap in a rounded corner shape later if
-        // ImageSharp.Drawing's arc-path API differs from what's assumed here.
-        var badgeRect = new RectangularPolygon(badgeX, badgeY, badgeWidth, badgeHeight);
+        // Built-in rounded-rect helper (added to ImageSharp.Drawing a while
+        // back) — no hand-rolled arc math needed, unlike the earlier
+        // uncompiled attempt.
+        var badgeRect = new PathBuilder()
+            .AddRoundedRectangle(new RectangleF(badgeX, badgeY, badgeWidth, badgeHeight), cornerRadius)
+            .Build();
+
+        // Soft drop shadow: same shape, offset slightly, blurred by drawing
+        // a lower-opacity copy underneath rather than a real gaussian blur
+        // (keeps this fast and dependency-free).
+        var shadowOffset = badgeHeight * 0.08f;
+        var shadowRect = new PathBuilder()
+            .AddRoundedRectangle(
+                new RectangleF(badgeX, badgeY + shadowOffset, badgeWidth, badgeHeight),
+                cornerRadius)
+            .Build();
+
+        // Accent color reflects the resolution tier so 4K/1080p/720p/SD are
+        // distinguishable at a glance, not just by reading the text.
+        var accent = label.StartsWith("4K", StringComparison.Ordinal)
+            ? Color.FromRgba(124, 58, 237, 255)   // 4K — violet
+            : label.StartsWith("1080p", StringComparison.Ordinal)
+                ? Color.FromRgba(56, 189, 248, 255)  // 1080p — sky blue
+                : label.StartsWith("720p", StringComparison.Ordinal)
+                    ? Color.FromRgba(148, 163, 184, 255) // 720p — slate
+                    : Color.FromRgba(107, 114, 128, 255); // SD — gray
+
+        var accentBorder = label.StartsWith("4K", StringComparison.Ordinal)
+            ? Color.FromRgba(124, 58, 237, 230)
+            : label.StartsWith("1080p", StringComparison.Ordinal)
+                ? Color.FromRgba(56, 189, 248, 230)
+                : label.StartsWith("720p", StringComparison.Ordinal)
+                    ? Color.FromRgba(148, 163, 184, 230)
+                    : Color.FromRgba(107, 114, 128, 230);
 
         image.Mutate(ctx =>
         {
-            ctx.Fill(Color.FromRgba(0, 0, 0, 178), badgeRect);
-            ctx.Draw(Color.FromRgba(255, 255, 255, 90), 1.5f, badgeRect);
+            ctx.Fill(Color.FromRgba(0, 0, 0, 90), shadowRect);
 
-            var textPosition = new PointF(badgeX + badgePaddingX, badgeY + badgePaddingY);
+            var backgroundGradient = new LinearGradientBrush(
+                new PointF(badgeX, badgeY),
+                new PointF(badgeX, badgeY + badgeHeight),
+                GradientRepetitionMode.None,
+                new ColorStop(0f, Color.FromRgba(24, 24, 27, 235)),
+                new ColorStop(1f, Color.FromRgba(9, 9, 11, 235)));
+
+            ctx.Fill(backgroundGradient, badgeRect);
+            ctx.Draw(accentBorder, 1.5f, badgeRect);
+
+            // Small accent dot before the text, same idea as a colored
+            // status pill — cheap to draw, reads clearly at poster-card size.
+            var dotRadius = badgeHeight * 0.16f;
+            var dotCenter = new PointF(
+                badgeX + badgePaddingX + dotRadius,
+                badgeY + (badgeHeight / 2f));
+            ctx.Fill(accent, new EllipsePolygon(dotCenter, dotRadius));
+
+            var textPosition = new PointF(
+                badgeX + badgePaddingX + (dotRadius * 2.6f),
+                badgeY + badgePaddingY);
             ctx.DrawText(
                 new RichTextOptions(font)
                 {
