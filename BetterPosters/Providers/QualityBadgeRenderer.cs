@@ -93,7 +93,7 @@ public static class QualityBadgeRenderer
                 return null;
         }
 
-        return videoStream.VideoRange == VideoRange.Hdr ? "HDR" : null;
+        return videoStream.VideoRange == VideoRange.HDR ? "HDR" : null;
     }
 
     /// <summary>
@@ -123,45 +123,47 @@ public static class QualityBadgeRenderer
 
         var badgeWidth = measured.Width + (badgePaddingX * 2);
         var badgeHeight = measured.Height + (badgePaddingY * 2);
-        var cornerRadius = badgeHeight * 0.28f;
 
         var badgeX = image.Width - badgeWidth - paddingX;
         var badgeY = paddingY;
 
-        // Built-in rounded-rect helper (added to ImageSharp.Drawing a while
-        // back) — no hand-rolled arc math needed, unlike the earlier
-        // uncompiled attempt.
-        var badgeRect = new PathBuilder()
-            .AddRoundedRectangle(new RectangleF(badgeX, badgeY, badgeWidth, badgeHeight), cornerRadius)
-            .Build();
+        // Plain rectangle rather than a rounded one — RoundedRectanglePolygon
+        // and PathBuilder.AddRoundedRectangle only exist on newer
+        // ImageSharp.Drawing major versions than the one pinned in the
+        // csproj (2.1.6). Rounding it later is a version-bump job, not a
+        // code-logic one.
+        var badgeRect = new RectangularPolygon(badgeX, badgeY, badgeWidth, badgeHeight);
 
-        // Soft drop shadow: same shape, offset slightly, blurred by drawing
-        // a lower-opacity copy underneath rather than a real gaussian blur
-        // (keeps this fast and dependency-free).
+        // Soft drop shadow: same shape, offset slightly, drawn underneath at
+        // lower opacity rather than a real gaussian blur (keeps this fast
+        // and dependency-free).
         var shadowOffset = badgeHeight * 0.08f;
-        var shadowRect = new PathBuilder()
-            .AddRoundedRectangle(
-                new RectangleF(badgeX, badgeY + shadowOffset, badgeWidth, badgeHeight),
-                cornerRadius)
-            .Build();
+        var shadowRect = new RectangularPolygon(badgeX, badgeY + shadowOffset, badgeWidth, badgeHeight);
 
         // Accent color reflects the resolution tier so 4K/1080p/720p/SD are
         // distinguishable at a glance, not just by reading the text.
-        var accent = label.StartsWith("4K", StringComparison.Ordinal)
-            ? Color.FromRgba(124, 58, 237, 255)   // 4K — violet
-            : label.StartsWith("1080p", StringComparison.Ordinal)
-                ? Color.FromRgba(56, 189, 248, 255)  // 1080p — sky blue
-                : label.StartsWith("720p", StringComparison.Ordinal)
-                    ? Color.FromRgba(148, 163, 184, 255) // 720p — slate
-                    : Color.FromRgba(107, 114, 128, 255); // SD — gray
-
-        var accentBorder = label.StartsWith("4K", StringComparison.Ordinal)
-            ? Color.FromRgba(124, 58, 237, 230)
-            : label.StartsWith("1080p", StringComparison.Ordinal)
-                ? Color.FromRgba(56, 189, 248, 230)
-                : label.StartsWith("720p", StringComparison.Ordinal)
-                    ? Color.FromRgba(148, 163, 184, 230)
-                    : Color.FromRgba(107, 114, 128, 230);
+        Color accent;
+        Color accentBorder;
+        if (label.StartsWith("4K", StringComparison.Ordinal))
+        {
+            accent = Color.FromRgba(124, 58, 237, 255);
+            accentBorder = Color.FromRgba(124, 58, 237, 230);
+        }
+        else if (label.StartsWith("1080p", StringComparison.Ordinal))
+        {
+            accent = Color.FromRgba(56, 189, 248, 255);
+            accentBorder = Color.FromRgba(56, 189, 248, 230);
+        }
+        else if (label.StartsWith("720p", StringComparison.Ordinal))
+        {
+            accent = Color.FromRgba(148, 163, 184, 255);
+            accentBorder = Color.FromRgba(148, 163, 184, 230);
+        }
+        else
+        {
+            accent = Color.FromRgba(107, 114, 128, 255);
+            accentBorder = Color.FromRgba(107, 114, 128, 230);
+        }
 
         image.Mutate(ctx =>
         {
