@@ -1,0 +1,282 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Existing bare SemVer tag to publish or recover
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Test
+        run: dotnet test BetterPosters.sln --configuration Release --verbosity normal
+
+  release:
+    name: Release
+    if: github.ref_type == 'tag' || inputs.release_version != ''
+    needs: test
+    runs-on: ubuntu-latest
+    concurrency:
+      group: better-posters-release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ inputs.release_version || github.ref_name }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install JPRM
+        run: python -m pip install --disable-pip-version-check jprm==1.1.0
+
+      - name: Validate release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must use bare SemVer: $VERSION" >&2
+            exit 1
+          fi
+
+          if ! git rev-parse --verify --quiet "refs/tags/$VERSION^{commit}" >/dev/null; then
+            echo "Release tag does not exist: $VERSION" >&2
+            exit 1
+          fi
+
+          plugin_version="$(sed -nE 's/^version: *"([^"]+)"/\1/p' build.yaml)"
+          if [[ "$plugin_version" != "$VERSION.0" ]]; then
+            echo "build.yaml version $plugin_version does not match tag $VERSION" >&2
+            exit 1
+          fi
+
+          awk -v version="$VERSION" '
+            index($0, "## [" version "]") == 1 { found = 1; next }
+            index($0, "## [") == 1 { found = 0 }
+            found { print }
+          ' CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
+
+          if [[ ! -s "$RUNNER_TEMP/release-notes.md" ]]; then
+            echo "CHANGELOG.md has no release notes for $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Build package
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p artifacts
+          python -m jprm plugin build . \
+            --output artifacts \
+            --dotnet-configuration Release \
+            --version "$VERSION.0" \
+            --dotnet-framework net9.0
+
+          mapfile -t packages < <(find artifacts -maxdepth 1 -type f -name '*.zip')
+          if [[ "${#packages[@]}" -ne 1 ]]; then
+            echo "Expected exactly one plugin package, found ${#packages[@]}" >&2
+            exit 1
+          fi
+
+          package="${packages[0]}"
+          md5sum "$package" > "$package.md5sum"
+          sha256sum "$package" > "$package.sha256sum"
+          echo "path=$package" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$package")" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          latest_version="$(
+            git tag --list |
+              awk '/^[0-9]+\.[0-9]+\.[0-9]+$/ { print }' |
+              sort --version-sort |
+              tail --lines 1
+          )"
+
+          publish_args=(--draft=false --prerelease=false)
+          if [[ "$VERSION" == "$latest_version" ]]; then
+            publish_args+=(--latest)
+          fi
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            if [[ "$(gh release view "$VERSION" --json isDraft --jq '.isDraft')" == "true" ]]; then
+              gh release edit "$VERSION" \
+                --tag "$VERSION" \
+                --title "$VERSION" \
+                --notes-file "$RUNNER_TEMP/release-notes.md" \
+                --prerelease=false
+              gh release upload "$VERSION" \
+                "$PACKAGE_PATH" \
+                "$PACKAGE_PATH.md5sum" \
+                "$PACKAGE_PATH.sha256sum" \
+                --clobber
+              gh release edit "$VERSION" \
+                --tag "$VERSION" \
+                "${publish_args[@]}"
+            else
+              echo "Release $VERSION is already published; preserving its assets."
+            fi
+          else
+            gh release create "$VERSION" \
+              "$PACKAGE_PATH" \
+              "$PACKAGE_PATH.md5sum" \
+              "$PACKAGE_PATH.sha256sum" \
+              --draft \
+              --verify-tag \
+              --title "$VERSION" \
+              --notes-file "$RUNNER_TEMP/release-notes.md"
+            gh release edit "$VERSION" \
+              --tag "$VERSION" \
+              "${publish_args[@]}"
+          fi
+
+          if [[ "$(gh release view "$VERSION" --json isDraft --jq '.isDraft')" != "false" ]]; then
+            echo "Release $VERSION was not published." >&2
+            exit 1
+          fi
+
+          mapfile -t actual_assets < <(
+            gh release view "$VERSION" --json assets --jq '.assets[].name'
+          )
+          expected_assets=(
+            "$(basename "$PACKAGE_PATH")"
+            "$(basename "$PACKAGE_PATH.md5sum")"
+            "$(basename "$PACKAGE_PATH.sha256sum")"
+          )
+
+          for expected_asset in "${expected_assets[@]}"; do
+            asset_found=false
+            for actual_asset in "${actual_assets[@]}"; do
+              if [[ "$actual_asset" == "$expected_asset" ]]; then
+                asset_found=true
+                break
+              fi
+            done
+            if [[ "$asset_found" != "true" ]]; then
+              echo "Release asset $expected_asset is not uploaded." >&2
+              exit 1
+            fi
+          done
+
+      - name: Verify published GitHub Release
+        env:
+          PACKAGE_NAME: ${{ steps.package.outputs.name }}
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          latest_version="$(
+            git tag --list |
+              awk '/^[0-9]+\.[0-9]+\.[0-9]+$/ { print }' |
+              sort --version-sort |
+              tail --lines 1
+          )"
+
+          release_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSION}"
+          published_package="$RUNNER_TEMP/$PACKAGE_NAME"
+          published_md5="$RUNNER_TEMP/$PACKAGE_NAME.md5sum"
+
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 \
+            --output "$published_package" "$release_url/$PACKAGE_NAME"
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 \
+            --output "$published_md5" "$release_url/$PACKAGE_NAME.md5sum"
+
+          expected_md5="$(awk '{ print $1; exit }' "$published_md5")"
+          echo "$expected_md5  $published_package" | md5sum --check --strict -
+          cp -- "$published_package" "$PACKAGE_PATH"
+
+          if [[ "$VERSION" == "$latest_version" ]]; then
+            latest_release="$RUNNER_TEMP/latest-release.json"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 \
+              --output "$latest_release" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest"
+            if [[ "$(jq --raw-output '.tag_name' "$latest_release")" != "$VERSION" ]]; then
+              echo "Release $VERSION is not the public latest release." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Update plugin manifest
+        env:
+          PACKAGE_NAME: ${{ steps.package.outputs.name }}
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin master
+          git checkout -B master origin/master
+
+          plugin_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSION}/${PACKAGE_NAME}"
+          python -m jprm repo add --plugin-url "$plugin_url" ./manifest.json "$PACKAGE_PATH"
+
+          package_md5="$(md5sum "$PACKAGE_PATH" | awk '{ print $1 }')"
+          manifest_md5="$(
+            jq --raw-output --arg url "$plugin_url" '
+              [.[] | .versions[] | select(.sourceUrl == $url) | .checksum] |
+              last // empty
+            ' manifest.json
+          )"
+          if [[ "$manifest_md5" != "$package_md5" ]]; then
+            echo "Generated manifest checksum does not match the public package." >&2
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+
+          if git diff --cached --quiet; then
+            echo "Manifest already up to date."
+            exit 0
+          fi
+
+          git commit -m "Update Jellyfin plugin manifest [skip ci]"
+          git push origin HEAD:master
