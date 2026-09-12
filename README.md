@@ -1,125 +1,27 @@
-<div align="center">
+# Better Posters (Local Quality Fix)
 
-<img src="Assets/Logo.png" alt="Logo" height="128px" />
+Fork of [Better Posters](https://github.com/neurekadev/better-posters).
 
-# Better Posters
+The original plugin's quality badge (4K/1080p/etc) is pulled from btttr.cc's own external database, not from your actual files. It's often wrong — shows 4K on a 1080p file, or the other way around.
 
-[![Release](https://img.shields.io/github/v/release/neurekadev/better-posters?style=flat-square&logo=github&logoColor=F43F5E&label=Release&color=F43F5E)](https://github.com/neurekadev/better-posters/releases/latest)
-[![Pipeline](https://img.shields.io/github/actions/workflow/status/neurekadev/better-posters/CI.yml?branch=master&style=flat-square&logo=githubactions&logoColor=8B5CF6&label=Pipeline&color=8B5CF6)](https://github.com/neurekadev/better-posters/actions/workflows/CI.yml)
-[![License](https://img.shields.io/github/license/neurekadev/better-posters?style=flat-square&label=License&color=14B8A6&logo=opensourceinitiative&logoColor=14B8A6)](./LICENSE.md)
-[![AI](https://img.shields.io/badge/AI-assisted-5786FE?style=flat-square&logo=deepseek&logoColor=5786FE)](https://github.com/neurekadev/better-posters)
-[![Stars](https://img.shields.io/github/stars/neurekadev/better-posters?style=flat-square&label=Stars&color=EAB308&logo=googlegemini&logoColor=EAB308)](https://github.com/neurekadev/better-posters)
+This fork fixes that. The quality badge is now read directly from Jellyfin's own scan of your file (real resolution, real HDR/DV/HLG) — same data you'd see under a file's "Media Info" in Jellyfin. What it says is what you actually have.
 
-**Better Posters** is an unofficial Jellyfin plugin that lets you replace standard movie and show posters with customizable posters from [btttr.cc](https://btttr.cc).
+Built for Jellyfin 12.0.
 
-</div>
+## Install
 
-> [!WARNING]
-> **We've moved to GitHub — please reinstall Better Posters (migrated 2026-08-25).**
-> Better Posters is now officially hosted on GitHub. If you installed it from the former GitLab plugin repository, replace that repository and reinstall the plugin:
->
-> 1. In Jellyfin, open **Dashboard -> Plugins -> Repositories** and remove the old **Better Posters** repository that uses `code.neureka.dev`.
-> 2. Add the new repository URL: `https://raw.githubusercontent.com/neurekadev/better-posters/master/manifest.json`
-> 3. Reinstall **Better Posters** from **Dashboard -> Plugins -> Catalog**, then restart Jellyfin.
+Add this repository in Jellyfin:
 
-**Minimum Jellyfin version:** 10.11.10
+**Dashboard → Plugins → Repositories → Add Repository**
 
-## Features
+```
+https://raw.githubusercontent.com/ushereats/better-posters-quality-fix/master/manifest.json
+```
 
-- **Movies and Shows:** Registers as a remote primary image provider for movie and series items.
-- **Configurable Poster Overlays:** Toggle trend tags, quality badges, genre, rating, and age rating.
-- **Rating Source Selection:** Use btttr.cc average ratings or choose IMDb, TMDB, Rotten Tomatoes, Metacritic, Trakt, Letterboxd, or Roger Ebert.
-- **Multi-Language Posters:** Select English, Spanish, French, German, Portuguese, Italian, Dutch, Polish, Russian, Turkish, Arabic, Japanese, Korean, Chinese, Hindi, Swedish, or Czech.
-- **Scheduled Replacement:** Optionally replace existing movie and show posters through Jellyfin Scheduled Tasks.
+Then **Dashboard → Plugins → Catalog** → install **Better Posters (Local Quality Fix)** → restart Jellyfin.
 
-## Installation Guide
+Turn on **Quality Tags** in the plugin's settings. Disable the original Better Posters plugin so they don't both try to claim the same poster.
 
-### Option 1: Install from the Plugin Repository
+## Updates
 
-1. Open **Dashboard -> Plugins -> Repositories** in Jellyfin.
-2. Add this repository URL:
-
-    ```text
-    https://raw.githubusercontent.com/neurekadev/better-posters/master/manifest.json
-    ```
-
-3. Open **Dashboard -> Plugins -> Catalog**.
-4. Select **Better Posters** and install the latest compatible version.
-5. Restart Jellyfin.
-6. Confirm **Better Posters** appears under **Dashboard -> Plugins -> My Plugins**.
-
-### Option 2: Install Manually from a Release
-
-1. Download the latest `better-posters_*.zip` asset from the [GitHub releases page](https://github.com/neurekadev/better-posters/releases/latest).
-2. Stop Jellyfin.
-3. Create a Better Posters plugin folder under your Jellyfin plugins directory.
-4. Extract the release zip into that folder.
-5. Start Jellyfin.
-6. Confirm **Better Posters** appears under **Dashboard -> Plugins -> My Plugins**.
-
-### Option 3: Build from Source
-
-1. Install the .NET SDK that can build `net9.0` projects.
-2. From this repository, run:
-
-    ```shell
-    dotnet publish BetterPosters/BetterPosters.csproj -c Release
-    ```
-
-3. Locate the published `BetterPosters.dll`.
-4. Stop Jellyfin.
-5. Create a Better Posters plugin folder under your Jellyfin plugins directory.
-6. Copy `BetterPosters.dll` into that folder.
-7. Start Jellyfin.
-8. Confirm **Better Posters** appears under **Dashboard -> Plugins -> My Plugins**.
-
-This plugin is built for Jellyfin 10.11.10 and may not load on older Jellyfin versions.
-
-## Configuration & Setup
-
-Open **Dashboard -> Plugins -> My Plugins -> Better Posters**.
-
-Default settings:
-
-- **Trend Tags:** Enabled
-- **Quality Tags:** Disabled
-- **Genre:** Enabled
-- **Ratings:** Enabled
-- **Ratings Source:** Average
-- **Age Rating:** Disabled
-- **Language:** English
-
-The **Update Better Posters** scheduled task is unscheduled by default. Configure it under **Dashboard -> Scheduled Tasks** to replace existing primary posters for Movies and Shows that have an IMDb ID.
-
-## How to Apply Posters to Your Library
-
-### Option A: Apply to a Single Movie or Show
-
-1. Open a Movie or Show in Jellyfin.
-2. Select **Edit Images**.
-3. Search remote images.
-4. Choose the Better Posters primary image.
-
-### Option B: Apply During Metadata Refresh
-
-1. Go to **Dashboard -> Libraries**.
-2. Open the menu for a Movies or Shows library.
-3. Select **Scan Library**.
-4. Choose metadata refresh options that replace existing images.
-
-### Option C: Apply Automatically
-
-1. Open **Dashboard -> Scheduled Tasks**.
-2. Select **Update Better Posters**.
-3. Add the schedule you want Jellyfin to use.
-4. The scheduled task will replace matching movie and show primary images using the current poster settings.
-
-## Troubleshooting
-
-- **No Better Posters image appears:** Confirm the item has an IMDb ID. This plugin intentionally uses IMDb IDs for btttr.cc URLs.
-- **Plugin does not load:** Confirm the server is Jellyfin 10.11.10 or newer in the 10.11 line and restart Jellyfin after copying the plugin DLL.
-- **Poster did not change after selecting one:** Clear the browser cache or check another Jellyfin client. Jellyfin and browsers can cache images aggressively.
-
-## Disclaimer
-
-This is an unofficial Jellyfin plugin. Poster artwork and generated image output are provided by [btttr.cc](https://btttr.cc).
+Jellyfin checks this repo on its own via the "Check for plugin updates" scheduled task. New versions install automatically.
