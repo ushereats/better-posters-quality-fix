@@ -8,6 +8,12 @@ on:
     tags:
       - '*'
 
+# Required so the auto-generated GITHUB_TOKEN can create a Release. Without
+# this, the token defaults to read-only and the "Create GitHub Release" step
+# fails with "Resource not accessible by integration".
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
