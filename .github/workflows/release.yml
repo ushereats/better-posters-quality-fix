@@ -1,0 +1,53 @@
+name: Build and Release Plugin
+
+# Runs automatically whenever you push a tag like "1.0.0" (see step 3 in
+# GITHUB-ONLY-SETUP.md). Builds on GitHub's own servers — nothing runs on
+# your machine.
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore BetterPosters/BetterPosters.csproj
+
+      - name: Build
+        run: dotnet build BetterPosters/BetterPosters.csproj -c Release
+
+      - name: Publish
+        run: dotnet publish BetterPosters/BetterPosters.csproj -c Release -o publish
+
+      - name: Zip plugin output
+        run: |
+          cd publish
+          zip -r ../plugin.zip BetterPosters.dll SixLabors.*.dll
+          cd ..
+
+      - name: Compute checksum
+        id: checksum
+        run: echo "md5=$(md5sum plugin.zip | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: plugin.zip
+          name: ${{ github.ref_name }}
+
+      - name: Print checksum for manifest.json
+        run: |
+          echo "=================================================="
+          echo "Checksum for manifest.json: ${{ steps.checksum.outputs.md5 }}"
+          echo "Copy this value into the 'checksum' field."
+          echo "=================================================="
