@@ -6,7 +6,7 @@
         "overview": "Better Posters, with an accurate locally-rendered quality badge",
         "owner": "ushereats",
         "category": "MoviesAndShows",
-        "imageUrl": "https://raw.githubusercontent.com/ushereats/better-posters-quality-fix/master/Assets/Catalog.png",
+        "imageUrl": "https://raw.githubusercontent.com/ushereats/better-posters-quality-fix/main/Assets/Catalog.png",
         "versions": [
             {
                 "version": "1.0.1.0",

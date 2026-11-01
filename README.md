@@ -15,7 +15,7 @@ The look matches the Ushereats theme's poster badges.
 Dashboard → Plugins → Repositories → Add:
 
 ```
-https://raw.githubusercontent.com/ushereats/better-posters-quality-fix/master/manifest.json
+https://raw.githubusercontent.com/ushereats/better-posters-quality-fix/main/manifest.json
 ```
 
 Then Dashboard → Plugins → Catalog → **Better Posters (Local Quality Fix)** → Install → restart Jellyfin. Disable the original Better Posters plugin.
