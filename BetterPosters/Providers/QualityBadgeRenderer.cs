@@ -122,7 +122,7 @@ public static class QualityBadgeRenderer
             {
                 for (var i = 0; i < row.Length; i++)
                 {
-                    row[i] = new System.Numerics.Vector4(0, 0, 0, row[i].W * 0.45f);
+                    row[i] = new System.Numerics.Vector4(0, 0, 0, row[i].W * 0.6f);
                 }
             })
             .GaussianBlur(Math.Max(1f, 2f * s)));
@@ -154,8 +154,10 @@ public static class QualityBadgeRenderer
         for (var y = 0; y < tagged.Height / 4; y++)
         {
             var differ = 0;
+            var samples = 0;
             for (var x = w / 4; x < w * 3 / 4; x += 2)
             {
+                samples++;
                 var a = tagged[x, y];
                 var b = plain[x, y];
                 if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) > 60)
@@ -164,7 +166,8 @@ public static class QualityBadgeRenderer
                 }
             }
 
-            if (differ > Math.Max(3, w / 100))
+            // a tag row: most of the middle changed (JPEG noise on busy art changes only scattered pixels)
+            if (differ > samples * 0.3)
             {
                 bottom = y + 1;
                 gap = 0;
