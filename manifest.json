@@ -9,6 +9,14 @@
         "imageUrl": "https://raw.githubusercontent.com/ushereats/better-posters-quality-fix/main/Assets/Catalog.png",
         "versions": [
             {
+                "version": "1.1.29.0",
+                "changelog": "\n### Changed\n- The 4K / 1440p / 1080p / 720p chip is now a copy of btttr.cc's: frosted light glass with the poster faintly behind it, the letters cut out of it (the poster shows through them, darkened), an Arial-style heavy bold (Arimo, built in), btttr.cc's size, corners and position.\n- Studio style: titles with no clean artwork on TMDb now get TMDb's full-size official poster (with just the badges added) instead of btttr.cc's 500 px one, so they're sharp too.\n- Updating is about 3x faster: three titles at a time.",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://github.com/ushereats/better-posters-quality-fix/releases/download/1.1.29/better-posters-quality-fix_1.1.29.0.zip",
+                "checksum": "aad56869af6c4f1b51a686326172c632",
+                "timestamp": "2026-11-01T11:34:53Z"
+            },
+            {
                 "version": "1.1.25.0",
                 "changelog": "\n### Changed\n- Sharper posters: studio posters are made from TMDb's full-size artwork and logos at 1000 x 1500 (was 780 x 1170), with better resizing, and every poster is saved at higher JPEG quality with full colour detail.\n- The tag at the top of studio posters is off by default (setting \"Tag at the top\").",
                 "targetAbi": "12.0.0.0",
@@ -39,14 +47,6 @@
                 "sourceUrl": "https://github.com/ushereats/better-posters-quality-fix/releases/download/1.1.15/better-posters-quality-fix_1.1.15.0.zip",
                 "checksum": "625f6b26cad51360e09c6c952b2cf67c",
                 "timestamp": "2026-11-01T06:16:18Z"
-            },
-            {
-                "version": "1.0.1.0",
-                "changelog": "### Changed\n- Badge visuals: gradient background, drop shadow, and tier-colored accent dot (violet/blue/slate/gray).\n",
-                "targetAbi": "12.0.0.0",
-                "sourceUrl": "https://github.com/ushereats/better-posters-quality-fix/releases/download/1.0.1/plugin.zip",
-                "checksum": "4c654e367dc51a390252f616adc47fec",
-                "timestamp": "2026-09-12T02:32:08Z"
             }
         ]
     }
