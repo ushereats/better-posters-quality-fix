@@ -77,7 +77,7 @@ if [ "$MODE" = repo ]; then
   VER=""
   for i in $(seq 1 20); do
     api GET "/Packages" > "$OUT/packages.json" || true
-    VER=$(python3 -c "import json; p=[x for x in json.load(open('$OUT/packages.json')) if x.get('guid','').lower()=='$GUID']; print(p[0]['versions'][0]['version'] if p else '')" 2>/dev/null || true)
+    VER=$(python3 -c "import json; p=[x for x in json.load(open('$OUT/packages.json')) if x.get('guid','').lower().replace('-','')=='$GUID'.replace('-','')]; print(p[0]['versions'][0]['version'] if p else '')" 2>/dev/null || true)
     [ -n "$VER" ] && break; sleep 3
   done
   if [ -z "$VER" ]; then
