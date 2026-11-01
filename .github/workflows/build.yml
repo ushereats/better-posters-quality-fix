@@ -29,7 +29,8 @@ jobs:
           mkdir -p previews/in previews/out
           for id in tt0111161 tt1375666 tt0903747 tt0816692; do
             curl -fsSL "https://btttr.cc/poster/imdb/poster-default/$id.jpg" -o "previews/in/$id.jpg" || true
-            curl -fsSL "https://btttr.cc/poster-n/imdb/poster-default/$id.jpg?tag=none" -o "previews/in/$id-plain.jpg" || true
+            curl -fsSL "https://btttr.cc/poster/imdb/poster-default/$id.jpg?tag=none" -o "previews/in/$id-plain.jpg" || true
+            curl -fsSL "https://btttr.cc/poster-n/imdb/poster-default/$id.jpg?tag=none" -o "previews/in/$id-bare.jpg" || true
           done
           ls -la previews/in
       - name: Tests (+ badge previews)

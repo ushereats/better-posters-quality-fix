@@ -28,8 +28,10 @@ public static class QualityBadgeRenderer
     /// </summary>
     /// <param name="posterBytes">The poster image (any format ImageSharp reads).</param>
     /// <param name="quality">What to show.</param>
+    /// <param name="untaggedBytes">The same poster without btttr.cc's trend tag ("Oscar Nominee"...), when trend tags are on:
+    /// comparing the two finds the tag, so the badges sit just under it instead of on top of it.</param>
     /// <returns>The poster as a JPEG with the badges on it.</returns>
-    public static byte[] ApplyBadge(byte[] posterBytes, QualityInfo quality)
+    public static byte[] ApplyBadge(byte[] posterBytes, QualityInfo quality, byte[]? untaggedBytes = null)
     {
         ArgumentNullException.ThrowIfNull(posterBytes);
         ArgumentNullException.ThrowIfNull(quality);
@@ -37,7 +39,21 @@ public static class QualityBadgeRenderer
         using var image = Image.Load<Rgba32>(posterBytes);
         if (quality.HasAnything)
         {
-            Draw(image, quality);
+            var below = 0;
+            if (untaggedBytes is not null)
+            {
+                try
+                {
+                    using var plain = Image.Load<Rgba32>(untaggedBytes);
+                    below = TagBottom(image, plain);
+                }
+                catch (Exception ex) when (ex is ImageFormatException or UnknownImageFormatException)
+                {
+                    below = 0;
+                }
+            }
+
+            Draw(image, quality, below);
         }
 
         using var output = new MemoryStream();
@@ -50,7 +66,8 @@ public static class QualityBadgeRenderer
     /// </summary>
     /// <param name="image">The poster.</param>
     /// <param name="quality">What to show.</param>
-    public static void Draw(Image<Rgba32> image, QualityInfo quality)
+    /// <param name="below">Keep the badges below this row (the bottom of a trend tag), 0 for none.</param>
+    public static void Draw(Image<Rgba32> image, QualityInfo quality, int below = 0)
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(quality);
@@ -85,7 +102,7 @@ public static class QualityBadgeRenderer
         }
 
         var rowHeight = 17 * s;
-        var top = 12 * s;
+        var top = below > 0 ? below + (7 * s) : 12 * s;
         var centerY = top + (rowHeight / 2f);
         var x = (image.Width - total) / 2f;
 
@@ -115,6 +132,56 @@ public static class QualityBadgeRenderer
             ctx.DrawImage(shadow, new Point(0, (int)Math.Round(1 * s)), 1f);
             ctx.DrawImage(layer, new Point(0, 0), 1f);
         });
+    }
+
+    /// <summary>
+    /// Finds the bottom of the trend tag that hangs from the top edge: the lowest row in the top quarter
+    /// where the tagged and untagged posters differ. 0 when they don't (no tag on this title).
+    /// </summary>
+    /// <param name="tagged">The poster with the tag.</param>
+    /// <param name="plain">The same poster without it.</param>
+    /// <returns>The row just under the tag, or 0.</returns>
+    internal static int TagBottom(Image<Rgba32> tagged, Image<Rgba32> plain)
+    {
+        if (tagged.Width != plain.Width || tagged.Height != plain.Height)
+        {
+            return 0;
+        }
+
+        var w = tagged.Width;
+        var bottom = 0;
+        var gap = 0;
+        for (var y = 0; y < tagged.Height / 4; y++)
+        {
+            var differ = 0;
+            for (var x = w / 4; x < w * 3 / 4; x += 2)
+            {
+                var a = tagged[x, y];
+                var b = plain[x, y];
+                if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) > 60)
+                {
+                    differ++;
+                }
+            }
+
+            if (differ > Math.Max(3, w / 100))
+            {
+                bottom = y + 1;
+                gap = 0;
+            }
+            else if (bottom > 0 && ++gap > Math.Max(6, tagged.Height / 60))
+            {
+                // the tag is one block from the top edge: a long run of identical rows means it's over
+                break;
+            }
+            else if (bottom == 0 && y > tagged.Height / 30)
+            {
+                // nothing at the very top: no tag
+                return 0;
+            }
+        }
+
+        return bottom;
     }
 
     private static List<Part> BuildParts(QualityInfo q, float s)

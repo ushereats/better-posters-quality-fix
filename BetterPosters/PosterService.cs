@@ -175,11 +175,23 @@ public sealed class PosterService : IDisposable
         {
             try
             {
-                bytes = QualityBadgeRenderer.ApplyBadge(bytes, quality);
+                // with trend tags on, the same poster without the tag shows where the tag is (badges go under it)
+                byte[]? untagged = null;
+                if (Config.EnableTrendTags)
+                {
+                    var plainUrl = url + (url.Contains('?', StringComparison.Ordinal) ? "&" : "?") + "tag=none";
+                    using var plain = await client.GetAsync(new Uri(plainUrl), cancellationToken).ConfigureAwait(false);
+                    if (plain.IsSuccessStatusCode)
+                    {
+                        untagged = await plain.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                }
+
+                bytes = QualityBadgeRenderer.ApplyBadge(bytes, quality, untagged);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // a badge problem never stops the poster itself
+                // a badge problem (or the untagged download)  never stops the poster itself
                 _logger.LogWarning(ex, "Couldn't draw the quality badges on {Url}; using the poster without them", url);
             }
         }

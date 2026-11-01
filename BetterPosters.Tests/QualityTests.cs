@@ -86,6 +86,26 @@ public class QualityTests
         Assert.Same(b, QualityInfo.Best(a, b));
     }
 
+    [Fact]
+    public void TagBottom_FindsTheTag()
+    {
+        using var plain = new Image<Rgba32>(500, 750, new Rgba32(30, 50, 80));
+        using var tagged = plain.Clone();
+        tagged.ProcessPixelRows(rows =>
+        {
+            for (var y = 0; y < 70; y++)
+            {
+                var row = rows.GetRowSpan(y);
+                for (var x = 60; x < 440; x++)
+                {
+                    row[x] = new Rgba32(220, 170, 100);
+                }
+            }
+        });
+        Assert.Equal(70, QualityBadgeRenderer.TagBottom(tagged, plain));
+        Assert.Equal(0, QualityBadgeRenderer.TagBottom(plain, plain));
+    }
+
     // Draws the badges on a sample poster (and any real posters in $BP_PREVIEW_IN), saved to $BP_PREVIEW_OUT for a look
     [Fact]
     public void Renders_OnPosters()
@@ -121,9 +141,16 @@ public class QualityTests
 
         foreach (var (pname, bytes) in posters)
         {
+            // "<id>.jpg" has btttr.cc's trend tag, "<id>-plain.jpg" doesn't: the badges must go under the tag
+            byte[]? plain = null;
+            if (inDir is not null && File.Exists(Path.Combine(inDir, pname + "-plain.jpg")))
+            {
+                plain = File.ReadAllBytes(Path.Combine(inDir, pname + "-plain.jpg"));
+            }
+
             foreach (var (qname, q) in samples)
             {
-                var result = QualityBadgeRenderer.ApplyBadge(bytes, q);
+                var result = QualityBadgeRenderer.ApplyBadge(bytes, q, plain);
                 Assert.NotEmpty(result);
                 File.WriteAllBytes(Path.Combine(outDir, pname + "-" + qname + ".jpg"), result);
             }
