@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Sharper posters: studio posters are made from TMDb's full-size artwork and logos at 1000 x 1500 (was 780 x 1170), with better resizing, and every poster is saved at higher JPEG quality with full colour detail.
+- The tag at the top of studio posters is off by default (setting "Tag at the top").
+
+## [1.1.23] - 2026-11-01
+
 ### Added
 - Studio posters look closer to SpatialPosters: a tag hanging from the top edge (the studio or network, e.g. "Adult Swim", or the genre; setting "Tag at the top"), coloured from the poster itself, with the quality badges under it; bigger title logos; a soft grey info line.
 

@@ -22,9 +22,9 @@
                         <div class="selectContainer">
                             <label class="selectLabel" for="StudioTopTag">Tag at the top</label>
                             <select is="emby-select" id="StudioTopTag" name="StudioTopTag" class="emby-select-withcolor emby-select">
+                                <option value="None">None</option>
                                 <option value="Studio">Studio / network (e.g. Adult Swim, Netflix)</option>
                                 <option value="Genre">Genre</option>
-                                <option value="None">None</option>
                             </select>
                             <div class="fieldDescription">A tag hanging from the top edge, coloured from the poster itself. The quality badges sit under it.</div>
                         </div>
@@ -175,7 +175,7 @@
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(BetterPostersConfig.pluginUniqueId).then(function (config) {
                         betterPostersElement('Style').value = config.Style || 'Studio';
-                        betterPostersElement('StudioTopTag').value = config.StudioTopTag || 'Studio';
+                        betterPostersElement('StudioTopTag').value = config.StudioTopTag || 'None';
                         betterPostersElement('StudioLogo').checked = config.StudioLogo !== false;
                         betterPostersElement('StudioFade').value = config.StudioFade == null ? 70 : config.StudioFade;
                         betterPostersElement('StudioShowYear').checked = config.StudioShowYear !== false;

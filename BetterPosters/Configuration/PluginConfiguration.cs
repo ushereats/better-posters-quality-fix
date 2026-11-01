@@ -199,7 +199,7 @@ public class PluginConfiguration : BasePluginConfiguration
         StudioFade = 70;
         StudioShowYear = true;
         TmdbApiKey = string.Empty;
-        StudioTopTag = StudioTag.Studio;
+        StudioTopTag = StudioTag.None;
     }
 
     /// <summary>

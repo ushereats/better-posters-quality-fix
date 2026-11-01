@@ -42,10 +42,10 @@ public sealed record StudioInfo(string Title, float? Rating, int? Year, string? 
 public sealed class StudioPosterBuilder
 {
     /// <summary>Width of the posters made (2:3).</summary>
-    public const int Width = 780;
+    public const int Width = 1000;
 
     /// <summary>Height of the posters made.</summary>
-    public const int Height = 1170;
+    public const int Height = 1500;
 
     private const string Api = "https://api.themoviedb.org/3/";
     private const string Images = "https://image.tmdb.org/t/p/";
@@ -119,13 +119,13 @@ public sealed class StudioPosterBuilder
                 ?? Pick(doc.RootElement, "logos", p => Lang(p) is null && IsPng(p));
         }
 
-        var artBytes = await GetBytesAsync($"{Images}w780{art}", cancellationToken).ConfigureAwait(false);
+        var artBytes = await GetBytesAsync($"{Images}original{art}", cancellationToken).ConfigureAwait(false);
         if (artBytes is null)
         {
             return null;
         }
 
-        byte[]? logoBytes = logoPath is null ? null : await GetBytesAsync($"{Images}w780{logoPath}", cancellationToken).ConfigureAwait(false);
+        byte[]? logoBytes = logoPath is null ? null : await GetBytesAsync($"{Images}original{logoPath}", cancellationToken).ConfigureAwait(false);
         return Compose(artBytes, logoBytes, InfoFor(item, config), quality, config);
     }
 
@@ -170,7 +170,7 @@ public sealed class StudioPosterBuilder
         ArgumentNullException.ThrowIfNull(info);
         ArgumentNullException.ThrowIfNull(config);
         using var image = Image.Load<Rgba32>(artBytes);
-        image.Mutate(x => x.Resize(new ResizeOptions { Size = new Size(Width, Height), Mode = ResizeMode.Crop, Position = AnchorPositionMode.Center }));
+        image.Mutate(x => x.Resize(new ResizeOptions { Size = new Size(Width, Height), Mode = ResizeMode.Crop, Position = AnchorPositionMode.Center, Sampler = KnownResamplers.Lanczos3 }));
 
         var meta = MetaParts(info);
         var fade = Math.Clamp(config.StudioFade, 0, 100) / 100f;
@@ -212,7 +212,7 @@ public sealed class StudioPosterBuilder
                 var k = Math.Min(Width * 0.8f / logo.Width, Height * 0.22f / logo.Height);
                 var w = Math.Max(1, (int)Math.Round(logo.Width * k));
                 var h = Math.Max(1, (int)Math.Round(logo.Height * k));
-                logo.Mutate(x => x.Resize(w, h));
+                logo.Mutate(x => x.Resize(new ResizeOptions { Size = new Size(w, h), Mode = ResizeMode.Stretch, Sampler = KnownResamplers.Lanczos3 }));
                 var at = new Point((Width - w) / 2, (int)Math.Round(titleBottom - h));
                 Shadowed(image, logo, at, 0.55f, 7f, 3);
                 drewLogo = true;
@@ -245,7 +245,8 @@ public sealed class StudioPosterBuilder
         }
 
         using var output = new MemoryStream();
-        image.SaveAsJpeg(output, new JpegEncoder { Quality = 90 });
+        // high quality, full colour detail (no colour subsampling: sharp edges on logos and badges)
+        image.SaveAsJpeg(output, new JpegEncoder { Quality = 95, ColorType = JpegEncodingColor.YCbCrRatio444 });
         return output.ToArray();
     }
 

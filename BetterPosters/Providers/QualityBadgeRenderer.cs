@@ -57,7 +57,7 @@ public static class QualityBadgeRenderer
         }
 
         using var output = new MemoryStream();
-        image.SaveAsJpeg(output, new JpegEncoder { Quality = 92 });
+        image.SaveAsJpeg(output, new JpegEncoder { Quality = 95, ColorType = JpegEncodingColor.YCbCrRatio444 });
         return output.ToArray();
     }
 
