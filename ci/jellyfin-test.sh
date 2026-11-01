@@ -83,7 +83,7 @@ if [ "$MODE" = repo ]; then
 fi
 
 api GET /Plugins | python3 -c "import json,sys; [print(p['Name'], p['Version'], p['Status']) for p in json.load(sys.stdin)]" | tee "$OUT/plugins.txt"
-grep -q "Local Quality Fix .* Active" "$OUT/plugins.txt" || { echo "::error::plugin not active"; sudo journalctl -u jellyfin --no-pager | grep -i -B2 -A10 "better\|exception" | tail -80; exit 1; }
+grep -q "Local Quality Fix).* Active" "$OUT/plugins.txt" || { echo "::error::plugin not active"; sudo journalctl -u jellyfin --no-pager | grep -i -B2 -A10 "better\|exception" | tail -80; exit 1; }
 
 echo "== libraries"
 api POST "/Library/VirtualFolders?name=Movies&collectionType=movies&paths=%2Fsrv%2Fmedia%2Fmovies&refreshLibrary=false" '{"LibraryOptions":{}}' >/dev/null
