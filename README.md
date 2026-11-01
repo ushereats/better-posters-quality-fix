@@ -1,27 +1,30 @@
 # Better Posters (Local Quality Fix)
 
-Fork of [Better Posters](https://github.com/neurekadev/better-posters).
+Fork of [Better Posters](https://github.com/neurekadev/better-posters) for Jellyfin 12.
 
-The original plugin's quality badge (4K/1080p/etc) is pulled from btttr.cc's own external database, not from your actual files. It's often wrong — shows 4K on a 1080p file, or the other way around.
+The original takes its 4K / HDR badges from btttr.cc's own database, so they're often wrong for the file you actually have. This version reads the quality from Jellyfin's own scan of your file (the same data as "Media Info") and draws the badges onto the btttr.cc poster itself, so they show in every Jellyfin app (web, Android TV, phones, Infuse...):
 
-This fork fixes that. The quality badge is now read directly from Jellyfin's own scan of your file (real resolution, real HDR/DV/HLG) — same data you'd see under a file's "Media Info" in Jellyfin. What it says is what you actually have.
+- **Dolby** logo with **ATMOS** / **VISION** underneath (Dolby Atmos, Dolby Digital, Dolby Vision)
+- **HDR**, **HDR10+**, **HLG**
+- **4K**, **1440p**, **1080p**, **720p**, **SD** chip
 
-Built for Jellyfin 12.0.
+The look matches the Ushereats theme's poster badges.
 
 ## Install
 
-Add this repository in Jellyfin:
-
-**Dashboard → Plugins → Repositories → Add Repository**
+Dashboard → Plugins → Repositories → Add:
 
 ```
 https://raw.githubusercontent.com/ushereats/better-posters-quality-fix/master/manifest.json
 ```
 
-Then **Dashboard → Plugins → Catalog** → install **Better Posters (Local Quality Fix)** → restart Jellyfin.
+Then Dashboard → Plugins → Catalog → **Better Posters (Local Quality Fix)** → Install → restart Jellyfin. Disable the original Better Posters plugin.
 
-Turn on **Quality Tags** in the plugin's settings. Disable the original Better Posters plugin so they don't both try to claim the same poster.
+That's it: every movie and show gets its poster (the "Update Better Posters (Local Quality Fix)" task runs every night and only re-downloads titles that changed), and new titles get theirs within a minute of being added. The plugin's settings page has "Update posters now" and "Replace every poster now".
 
-## Updates
+## Notes
 
-Jellyfin checks this repo on its own via the "Check for plugin updates" scheduled task. New versions install automatically.
+- Needs the title's IMDb id (Jellyfin's normal metadata gives it).
+- If you use the Ushereats theme with its own "Quality badges" on, the theme draws the same badges over the poster in the web app; turn one of them off if you prefer only one.
+
+Releases are built, tested on a real Jellyfin 12 and published automatically on every push.

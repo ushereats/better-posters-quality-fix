@@ -16,7 +16,9 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
     /// <inheritdoc />
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
+        serviceCollection.AddSingleton<PosterService>();
         serviceCollection.AddSingleton<IRemoteImageProvider, BetterPostersImageProvider>();
+        serviceCollection.AddHostedService<NewTitleWatcher>();
         serviceCollection.AddSingleton<IScheduledTask, BetterPostersUpdateTask>();
     }
 }

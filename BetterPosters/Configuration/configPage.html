@@ -20,9 +20,9 @@
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
                             <input id="EnableQualityTags" name="EnableQualityTags" type="checkbox" is="emby-checkbox" />
-                            <span>Quality Tags</span>
+                            <span>Quality badges</span>
                         </label>
-                        <div class="fieldDescription checkboxFieldDescription">4K, Dolby Vision, Atmos badges</div>
+                        <div class="fieldDescription checkboxFieldDescription">4K / 1080p, HDR / HDR10+ / Dolby Vision and Dolby Atmos, read from your actual files (the same as Jellyfin's Media Info) and drawn on the poster.</div>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
@@ -81,17 +81,37 @@
                             <option value="Czech">Čeština</option>
                         </select>
                     </div>
+                    <h2>Updating</h2>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="ApplyToAllLibraries" name="ApplyToAllLibraries" type="checkbox" is="emby-checkbox" />
+                            <span>All movie and show libraries</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Off: only libraries where "Better Posters" is ticked under Image fetchers in the library's settings.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="AutoApplyNewTitles" name="AutoApplyNewTitles" type="checkbox" is="emby-checkbox" />
+                            <span>New titles straight away</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">New movies and shows (and files you upgrade, e.g. to 4K) get their poster within a minute, not just at the nightly run.</div>
+                    </div>
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
                         </button>
                     </div>
+                    <div style="display:flex;gap:.6em;flex-wrap:wrap;margin-top:1em">
+                        <button is="emby-button" type="button" id="bpRunNow" class="raised emby-button" style="flex:1 1 12em"><span>Update posters now</span></button>
+                        <button is="emby-button" type="button" id="bpRunAll" class="raised emby-button" style="flex:1 1 12em"><span>Replace every poster now</span></button>
+                    </div>
+                    <div class="fieldDescription" id="bpStatus" style="margin-top:.6em">"Update posters now" only touches titles that changed (it also runs every night). "Replace every poster now" downloads all of them again, e.g. after changing the options above.</div>
                 </form>
             </div>
         </div>
         <script type="text/javascript">
             var BetterPostersConfig = {
-                pluginUniqueId: '862b7dbc-9485-41f2-a9d9-fc9ca66a6a51'
+                pluginUniqueId: '066ff97a-0628-4d1d-b256-840f1e25f8df'
             };
 
             function betterPostersElement(id) {
@@ -109,6 +129,8 @@
                         betterPostersElement('RatingSource').value = config.RatingSource;
                         betterPostersElement('EnableAgeRating').checked = config.EnableAgeRating;
                         betterPostersElement('Language').value = config.Language;
+                        betterPostersElement('ApplyToAllLibraries').checked = config.ApplyToAllLibraries !== false;
+                        betterPostersElement('AutoApplyNewTitles').checked = config.AutoApplyNewTitles !== false;
                         Dashboard.hideLoadingMsg();
                     });
                 });
@@ -124,6 +146,8 @@
                         config.RatingSource = betterPostersElement('RatingSource').value;
                         config.EnableAgeRating = betterPostersElement('EnableAgeRating').checked;
                         config.Language = betterPostersElement('Language').value;
+                        config.ApplyToAllLibraries = betterPostersElement('ApplyToAllLibraries').checked;
+                        config.AutoApplyNewTitles = betterPostersElement('AutoApplyNewTitles').checked;
                         ApiClient.updatePluginConfiguration(BetterPostersConfig.pluginUniqueId, config).then(function (result) {
                             Dashboard.processPluginConfigurationUpdateResult(result);
                         });
@@ -132,6 +156,31 @@
                     e.preventDefault();
                     return false;
                 });
+
+            // run the "Update Better Posters" task (all = replace every poster on this run)
+            function betterPostersRun(all) {
+                var status = betterPostersElement('bpStatus');
+                var start = function () {
+                    return ApiClient.getScheduledTasks({ isHidden: false }).then(function (tasks) {
+                        var t = tasks.filter(function (x) { return x.Key === 'BetterPostersQualityFixUpdate'; })[0];
+                        if (!t) throw new Error('task not found');
+                        return ApiClient.startScheduledTask(t.Id);
+                    });
+                };
+                var p = all
+                    ? ApiClient.getPluginConfiguration(BetterPostersConfig.pluginUniqueId).then(function (config) {
+                        config.ForceNextRun = true;
+                        return ApiClient.updatePluginConfiguration(BetterPostersConfig.pluginUniqueId, config);
+                    }).then(start)
+                    : start();
+                p.then(function () {
+                    status.textContent = 'Started. Progress is under Dashboard > Scheduled Tasks > "Update Better Posters (Local Quality Fix)".';
+                }, function (e) {
+                    status.textContent = 'Could not start it: ' + (e && e.message ? e.message : e);
+                });
+            }
+            betterPostersElement('bpRunNow').addEventListener('click', function () { betterPostersRun(false); });
+            betterPostersElement('bpRunAll').addEventListener('click', function () { betterPostersRun(true); });
         </script>
     </div>
 </body>

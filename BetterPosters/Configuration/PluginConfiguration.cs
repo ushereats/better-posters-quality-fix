@@ -155,7 +155,9 @@ public class PluginConfiguration : BasePluginConfiguration
     public PluginConfiguration()
     {
         EnableTrendTags = true;
-        EnableQualityTags = false;
+        EnableQualityTags = true;
+        ApplyToAllLibraries = true;
+        AutoApplyNewTitles = true;
         EnableGenre = true;
         EnableRating = true;
         RatingSource = PosterRatingSource.Average;
@@ -197,4 +199,20 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets the poster language.
     /// </summary>
     public PosterLanguage Language { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether every movie/show library gets Better Posters
+    /// (off: only libraries with "Better Posters" ticked as an image fetcher).
+    /// </summary>
+    public bool ApplyToAllLibraries { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether new titles (and upgraded files) get their poster straight away.
+    /// </summary>
+    public bool AutoApplyNewTitles { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the next run replaces every poster, even unchanged ones.
+    /// </summary>
+    public bool ForceNextRun { get; set; }
 }

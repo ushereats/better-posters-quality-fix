@@ -30,7 +30,7 @@ public class BetterPostersImageProvider : IRemoteImageProvider, IHasOrder
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILibraryManager _libraryManager;
-    private readonly IMediaSourceManager _mediaSourceManager;
+    private readonly PosterService _posters;
     private readonly ILogger<BetterPostersImageProvider> _logger;
 
     /// <summary>
@@ -38,17 +38,17 @@ public class BetterPostersImageProvider : IRemoteImageProvider, IHasOrder
     /// </summary>
     /// <param name="httpClientFactory">The HTTP client factory.</param>
     /// <param name="libraryManager">The library manager, used to resolve the item embedded in the image URL.</param>
-    /// <param name="mediaSourceManager">The media source manager, used to read real stream resolution/HDR data.</param>
+    /// <param name="posters">The poster service (download + quality badges).</param>
     /// <param name="logger">The logger.</param>
     public BetterPostersImageProvider(
         IHttpClientFactory httpClientFactory,
         ILibraryManager libraryManager,
-        IMediaSourceManager mediaSourceManager,
+        PosterService posters,
         ILogger<BetterPostersImageProvider> logger)
     {
         _httpClientFactory = httpClientFactory;
         _libraryManager = libraryManager;
-        _mediaSourceManager = mediaSourceManager;
+        _posters = posters;
         _logger = logger;
     }
 
@@ -117,43 +117,32 @@ public class BetterPostersImageProvider : IRemoteImageProvider, IHasOrder
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
         var (cleanUrl, itemId) = ExtractAndStripItemId(url);
-
-        var client = _httpClientFactory.CreateClient(NamedClient.Default);
-        var response = await client.GetAsync(new Uri(cleanUrl), cancellationToken).ConfigureAwait(false);
-
-        var configuration = Plugin.Instance?.Configuration ?? new PluginConfiguration();
-        if (!configuration.EnableQualityTags || itemId is null || !response.IsSuccessStatusCode)
+        var item = itemId is null ? null : _libraryManager.GetItemById(itemId.Value);
+        if (item is null)
         {
-            return response;
+            var client = _httpClientFactory.CreateClient(NamedClient.Default);
+            return await client.GetAsync(new Uri(cleanUrl), cancellationToken).ConfigureAwait(false);
         }
 
+        QualityInfo? quality = null;
         try
         {
-            var label = ResolveQualityLabel(itemId.Value);
-            if (string.IsNullOrEmpty(label))
-            {
-                return response;
-            }
-
-            var originalBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-            var badgedBytes = QualityBadgeRenderer.ApplyBadge(originalBytes, label);
-
-            var badgedResponse = new HttpResponseMessage(response.StatusCode)
-            {
-                Content = new ByteArrayContent(badgedBytes)
-            };
-            badgedResponse.Content.Headers.ContentType =
-                new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
-
-            return badgedResponse;
+            quality = _posters.ResolveQuality(item);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Never let a badge-rendering failure break poster loading entirely —
-            // fall back to the plain (unbadged) btttr.cc poster.
-            _logger.LogWarning(ex, "Failed to render local quality badge for item {ItemId}; using unbadged poster", itemId);
-            return response;
+            _logger.LogWarning(ex, "Couldn't read the quality of {Name}", item.Name);
         }
+
+        var (status, bytes) = await _posters.DownloadAsync(cleanUrl, quality, cancellationToken).ConfigureAwait(false);
+        var response = new HttpResponseMessage(status);
+        if (bytes is not null)
+        {
+            response.Content = new ByteArrayContent(bytes);
+            response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        }
+
+        return response;
     }
 
     /// <summary>
@@ -198,44 +187,5 @@ public class BetterPostersImageProvider : IRemoteImageProvider, IHasOrder
             : basePath + "?" + string.Join('&', remainingPairs);
 
         return (cleanUrl, itemId);
-    }
-
-    private string? ResolveQualityLabel(Guid itemId)
-    {
-        var item = _libraryManager.GetItemById(itemId);
-        if (item is null)
-        {
-            return null;
-        }
-
-        if (item is Series series)
-        {
-            // Series have no single resolution of their own — use the
-            // highest-resolution episode found. Adjust this if you'd rather
-            // badge series poster by, say, the most recently aired episode
-            // instead of the sharpest one.
-            var episodes = _libraryManager.GetItemList(new MediaBrowser.Controller.Entities.InternalItemsQuery
-            {
-                Parent = series,
-                IncludeItemTypes = [BaseItemKind.Episode],
-                Recursive = true
-            });
-
-            var bestStreams = episodes
-                .Select(episode => _mediaSourceManager.GetMediaStreams(
-                    new MediaStreamQuery { ItemId = episode.Id }))
-                .Where(streams => streams.Count > 0)
-                .OrderByDescending(streams => streams
-                    .Where(s => s.Type == MediaStreamType.Video)
-                    .Select(s => (long)(s.Width ?? 0) * (s.Height ?? 0))
-                    .DefaultIfEmpty(0)
-                    .Max())
-                .FirstOrDefault();
-
-            return bestStreams is null ? null : QualityBadgeRenderer.GetQualityLabel(bestStreams);
-        }
-
-        var streams = _mediaSourceManager.GetMediaStreams(new MediaStreamQuery { ItemId = item.Id });
-        return QualityBadgeRenderer.GetQualityLabel(streams);
     }
 }

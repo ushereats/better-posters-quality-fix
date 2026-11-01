@@ -1,232 +1,336 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using Jellyfin.Data.Enums;
-using MediaBrowser.Model.Entities;
+using System.Reflection;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
 namespace BetterPosters.Providers;
 
 /// <summary>
-/// Computes a real quality label from Jellyfin's own MediaStream data and draws it
-/// onto a downloaded poster image, replacing btttr.cc's externally-sourced badge
-/// (which is not derived from the user's actual local file).
+/// Draws the quality badges onto a poster, in the same look as the Ushereats theme's poster badges:
+/// a row centred near the top - the Dolby logo (with ATMOS / VISION underneath), the HDR kind, and a light
+/// resolution chip - in Funnel Sans, with a soft shadow so it reads on any artwork.
+/// Sizes are the theme's (designed for a ~185 px wide poster card) scaled to the poster's real width.
 /// </summary>
 public static class QualityBadgeRenderer
 {
-    private static readonly string[] FontFallbacks =
-    [
-        "DejaVu Sans", "Liberation Sans", "Noto Sans", "Arial", "Helvetica", "Sans Serif"
-    ];
+    private const float DesignWidth = 185f;
+    private static readonly Lazy<FontFamily[]> Fonts = new(LoadFonts);
 
     /// <summary>
-    /// Derives a short quality label (e.g. "4K DV", "1080p HDR", "720p") from the
-    /// highest-resolution video stream found.
+    /// Draws the badges onto the poster.
     /// </summary>
-    /// <param name="streams">Media streams for the item (or the item's best-quality episode, for a series).</param>
-    /// <returns>A short label, or null if no video stream was found.</returns>
-    public static string? GetQualityLabel(IReadOnlyList<MediaStream> streams)
+    /// <param name="posterBytes">The poster image (any format ImageSharp reads).</param>
+    /// <param name="quality">What to show.</param>
+    /// <returns>The poster as a JPEG with the badges on it.</returns>
+    public static byte[] ApplyBadge(byte[] posterBytes, QualityInfo quality)
     {
-        var videoStream = streams
-            .Where(s => s.Type == MediaStreamType.Video)
-            .OrderByDescending(s => (long)(s.Width ?? 0) * (s.Height ?? 0))
-            .FirstOrDefault();
+        ArgumentNullException.ThrowIfNull(posterBytes);
+        ArgumentNullException.ThrowIfNull(quality);
 
-        if (videoStream is null)
-        {
-            return null;
-        }
-
-        var height = videoStream.Height ?? 0;
-        var width = videoStream.Width ?? 0;
-        var longEdge = Math.Max(width, height);
-
-        var resolutionLabel = longEdge switch
-        {
-            >= 3840 => "4K",
-            >= 1920 => "1080p",
-            >= 1280 => "720p",
-            > 0 => "SD",
-            _ => null
-        };
-
-        if (resolutionLabel is null)
-        {
-            return null;
-        }
-
-        var rangeSuffix = GetRangeSuffix(videoStream);
-        return rangeSuffix is null ? resolutionLabel : $"{resolutionLabel} {rangeSuffix}";
-    }
-
-    private static string? GetRangeSuffix(MediaStream videoStream)
-    {
-        // VideoRangeType (Jellyfin.Data.Enums.VideoRangeType) and VideoRange
-        // (Jellyfin.Data.Enums.VideoRange) are both proper enums, not strings —
-        // the original version of this method treated them as text and failed
-        // to compile. VideoRangeType is the more specific/authoritative field;
-        // VideoRange (Hdr/Sdr/Unknown) is the fallback for older records where
-        // VideoRangeType never got populated.
-        switch (videoStream.VideoRangeType)
-        {
-            case VideoRangeType.DOVI:
-            case VideoRangeType.DOVIWithEL:
-            case VideoRangeType.DOVIWithELHDR10Plus:
-            case VideoRangeType.DOVIWithHDR10:
-            case VideoRangeType.DOVIWithHDR10Plus:
-            case VideoRangeType.DOVIWithHLG:
-            case VideoRangeType.DOVIWithSDR:
-                return "DV";
-            case VideoRangeType.HDR10Plus:
-                return "HDR10+";
-            case VideoRangeType.HDR10:
-                return "HDR";
-            case VideoRangeType.HLG:
-                return "HLG";
-            case VideoRangeType.SDR:
-                return null;
-        }
-
-        return videoStream.VideoRange == VideoRange.HDR ? "HDR" : null;
-    }
-
-    /// <summary>
-    /// Draws a badge with the given label onto the top-right corner of the poster.
-    /// </summary>
-    /// <param name="posterBytes">The original poster image bytes.</param>
-    /// <param name="label">The label to draw (e.g. "4K HDR").</param>
-    /// <returns>Re-encoded JPEG bytes with the badge applied.</returns>
-    public static byte[] ApplyBadge(byte[] posterBytes, string label)
-    {
         using var image = Image.Load<Rgba32>(posterBytes);
-
-        var font = ResolveFont(image.Width);
-        var textOptions = new RichTextOptions(font)
+        if (quality.HasAnything)
         {
-            Origin = default,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Top
-        };
-
-        var measured = TextMeasurer.MeasureSize(label, textOptions);
-
-        var paddingX = image.Width * 0.035f;
-        var paddingY = image.Width * 0.035f;
-        var badgePaddingX = image.Width * 0.022f;
-        var badgePaddingY = image.Width * 0.014f;
-
-        var badgeWidth = measured.Width + (badgePaddingX * 2);
-        var badgeHeight = measured.Height + (badgePaddingY * 2);
-
-        var badgeX = image.Width - badgeWidth - paddingX;
-        var badgeY = paddingY;
-
-        // Plain rectangle rather than a rounded one — RoundedRectanglePolygon
-        // and PathBuilder.AddRoundedRectangle only exist on newer
-        // ImageSharp.Drawing major versions than the one pinned in the
-        // csproj (2.1.6). Rounding it later is a version-bump job, not a
-        // code-logic one.
-        var badgeRect = new RectangularPolygon(badgeX, badgeY, badgeWidth, badgeHeight);
-
-        // Soft drop shadow: same shape, offset slightly, drawn underneath at
-        // lower opacity rather than a real gaussian blur (keeps this fast
-        // and dependency-free).
-        var shadowOffset = badgeHeight * 0.08f;
-        var shadowRect = new RectangularPolygon(badgeX, badgeY + shadowOffset, badgeWidth, badgeHeight);
-
-        // Accent color reflects the resolution tier so 4K/1080p/720p/SD are
-        // distinguishable at a glance, not just by reading the text.
-        Color accent;
-        Color accentBorder;
-        if (label.StartsWith("4K", StringComparison.Ordinal))
-        {
-            accent = Color.FromRgba(124, 58, 237, 255);
-            accentBorder = Color.FromRgba(124, 58, 237, 230);
+            Draw(image, quality);
         }
-        else if (label.StartsWith("1080p", StringComparison.Ordinal))
-        {
-            accent = Color.FromRgba(56, 189, 248, 255);
-            accentBorder = Color.FromRgba(56, 189, 248, 230);
-        }
-        else if (label.StartsWith("720p", StringComparison.Ordinal))
-        {
-            accent = Color.FromRgba(148, 163, 184, 255);
-            accentBorder = Color.FromRgba(148, 163, 184, 230);
-        }
-        else
-        {
-            accent = Color.FromRgba(107, 114, 128, 255);
-            accentBorder = Color.FromRgba(107, 114, 128, 230);
-        }
-
-        image.Mutate(ctx =>
-        {
-            ctx.Fill(Color.FromRgba(0, 0, 0, 90), shadowRect);
-
-            var backgroundGradient = new LinearGradientBrush(
-                new PointF(badgeX, badgeY),
-                new PointF(badgeX, badgeY + badgeHeight),
-                GradientRepetitionMode.None,
-                new ColorStop(0f, Color.FromRgba(24, 24, 27, 235)),
-                new ColorStop(1f, Color.FromRgba(9, 9, 11, 235)));
-
-            ctx.Fill(backgroundGradient, badgeRect);
-            ctx.Draw(accentBorder, 1.5f, badgeRect);
-
-            // Small accent dot before the text, same idea as a colored
-            // status pill — cheap to draw, reads clearly at poster-card size.
-            var dotRadius = badgeHeight * 0.16f;
-            var dotCenter = new PointF(
-                badgeX + badgePaddingX + dotRadius,
-                badgeY + (badgeHeight / 2f));
-            ctx.Fill(accent, new EllipsePolygon(dotCenter, dotRadius));
-
-            var textPosition = new PointF(
-                badgeX + badgePaddingX + (dotRadius * 2.6f),
-                badgeY + badgePaddingY);
-            ctx.DrawText(
-                new RichTextOptions(font)
-                {
-                    Origin = textPosition,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                },
-                label,
-                Color.White);
-        });
 
         using var output = new MemoryStream();
-        image.SaveAsJpeg(output);
+        image.SaveAsJpeg(output, new JpegEncoder { Quality = 92 });
         return output.ToArray();
     }
 
-    private static Font ResolveFont(int posterWidth)
+    /// <summary>
+    /// Draws the badges onto an image already in memory.
+    /// </summary>
+    /// <param name="image">The poster.</param>
+    /// <param name="quality">What to show.</param>
+    public static void Draw(Image<Rgba32> image, QualityInfo quality)
     {
-        var size = Math.Max(18f, posterWidth * 0.045f);
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(quality);
 
-        foreach (var name in FontFallbacks)
+        var s = image.Width / DesignWidth;
+        var parts = BuildParts(quality, s);
+        if (parts.Count == 0)
         {
-            if (SystemFonts.Collection.TryGet(name, out var family))
+            return;
+        }
+
+        var gap = 9 * s;
+        var total = -gap;
+        foreach (var p in parts)
+        {
+            total += p.Width + gap;
+        }
+
+        // never wider than the poster (small posters / long rows): shrink to fit
+        var maxWidth = image.Width - (20 * s);
+        if (total > maxWidth)
+        {
+            var k = maxWidth / total;
+            s *= k;
+            parts = BuildParts(quality, s);
+            gap = 9 * s;
+            total = -gap;
+            foreach (var p in parts)
             {
-                return family.CreateFont(size, FontStyle.Bold);
+                total += p.Width + gap;
             }
         }
 
-        // Last resort: whatever the first registered system family is.
-        var fallback = SystemFonts.Collection.Families.FirstOrDefault();
-        if (fallback.Name is not null)
+        var rowHeight = 17 * s;
+        var top = 12 * s;
+        var centerY = top + (rowHeight / 2f);
+        var x = (image.Width - total) / 2f;
+
+        // everything is drawn on its own layer first, so the shadow can be made from it
+        using var layer = new Image<Rgba32>(image.Width, (int)Math.Ceiling(top + rowHeight + (16 * s)));
+        layer.Mutate(ctx =>
         {
-            return fallback.CreateFont(size, FontStyle.Bold);
+            foreach (var p in parts)
+            {
+                p.Draw(ctx, x, centerY);
+                x += p.Width + gap;
+            }
+        });
+
+        using var shadow = layer.Clone(ctx => ctx
+            .ProcessPixelRowsAsVector4(row =>
+            {
+                for (var i = 0; i < row.Length; i++)
+                {
+                    row[i] = new System.Numerics.Vector4(0, 0, 0, row[i].W * 0.45f);
+                }
+            })
+            .GaussianBlur(Math.Max(1f, 2f * s)));
+
+        image.Mutate(ctx =>
+        {
+            ctx.DrawImage(shadow, new Point(0, (int)Math.Round(1 * s)), 1f);
+            ctx.DrawImage(layer, new Point(0, 0), 1f);
+        });
+    }
+
+    private static List<Part> BuildParts(QualityInfo q, float s)
+    {
+        var parts = new List<Part>();
+        if (q.DolbyVision || q.DolbyAudio is not null)
+        {
+            var sub = string.Join(" · ", new[] { q.DolbyAudio, q.DolbyVision ? "VISION" : null }.Where2());
+            parts.Add(new DolbyPart(sub, s));
         }
 
-        throw new InvalidOperationException(
-            "No system fonts are available to render the quality badge. Install a font " +
-            "package (e.g. fonts-dejavu-core) in the Jellyfin container/host.");
+        if (q.Hdr is not null)
+        {
+            parts.Add(new TextPart(q.Hdr, Font(800, 11 * s), 0.02f));
+        }
+
+        if (q.Resolution is not null)
+        {
+            parts.Add(new ChipPart(q.Resolution, s));
+        }
+
+        return parts;
+    }
+
+    private static Font Font(int weight, float size)
+    {
+        var families = Fonts.Value;
+        var family = weight >= 800 ? families[2] : weight >= 700 ? families[1] : families[0];
+        return family.CreateFont(Math.Max(1f, size), FontStyle.Regular);
+    }
+
+    private static FontFamily[] LoadFonts()
+    {
+        var collection = new FontCollection();
+        var asm = typeof(QualityBadgeRenderer).Assembly;
+        FontFamily Load(string weight)
+        {
+            using var stream = asm.GetManifestResourceStream("BetterPosters.Fonts.FunnelSans-" + weight + ".ttf")
+                ?? throw new InvalidOperationException("Embedded font missing: " + weight);
+            return collection.Add(stream);
+        }
+
+        return [Load("500"), Load("700"), Load("800")];
+    }
+
+    private static IPath RoundedRect(float x, float y, float w, float h, float r)
+    {
+        r = Math.Min(r, Math.Min(w, h) / 2f);
+        var pts = new List<PointF>();
+        void Arc(float cx, float cy, float start)
+        {
+            for (var i = 0; i <= 6; i++)
+            {
+                var a = (start + (90f * i / 6f)) * MathF.PI / 180f;
+                pts.Add(new PointF(cx + (r * MathF.Cos(a)), cy + (r * MathF.Sin(a))));
+            }
+        }
+
+        Arc(x + w - r, y + r, 270);
+        Arc(x + w - r, y + h - r, 0);
+        Arc(x + r, y + h - r, 90);
+        Arc(x + r, y + r, 180);
+        return new Polygon(new LinearLineSegment(pts.ToArray()));
+    }
+
+    private static float Advance(string text, Font font, float tracking)
+    {
+        var size = TextMeasurer.MeasureAdvance(text, new TextOptions(font) { Tracking = tracking });
+        return size.Width;
+    }
+
+    private static void DrawText(IImageProcessingContext ctx, string text, Font font, float tracking, float x, float centerY, Color color)
+    {
+        ctx.DrawText(
+            new RichTextOptions(font)
+            {
+                Origin = new PointF(x, centerY),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+                Tracking = tracking
+            },
+            text,
+            color);
+    }
+
+    private abstract class Part
+    {
+        public float Width { get; protected set; }
+
+        public abstract void Draw(IImageProcessingContext ctx, float x, float centerY);
+    }
+
+    // light resolution chip: "4K", "1080p"...
+    private sealed class ChipPart : Part
+    {
+        private readonly string _text;
+        private readonly Font _font;
+        private readonly float _s;
+        private readonly float _textWidth;
+
+        public ChipPart(string text, float s)
+        {
+            _text = text;
+            _s = s;
+            _font = Font(800, 12 * s);
+            _textWidth = Advance(text, _font, -0.02f);
+            Width = Math.Max(15 * s, _textWidth + (10 * s));
+        }
+
+        public override void Draw(IImageProcessingContext ctx, float x, float centerY)
+        {
+            var h = 17 * _s;
+            ctx.Fill(Color.FromRgba(242, 242, 242, 240), RoundedRect(x, centerY - (h / 2f), Width, h, 4 * _s));
+            DrawText(ctx, _text, _font, -0.02f, x + ((Width - _textWidth) / 2f), centerY + (0.5f * _s), Color.FromRgb(20, 20, 20));
+        }
+    }
+
+    // plain white wordmark: "HDR", "HDR10+", "HLG"
+    private sealed class TextPart : Part
+    {
+        private readonly string _text;
+        private readonly Font _font;
+        private readonly float _tracking;
+
+        public TextPart(string text, Font font, float tracking)
+        {
+            _text = text;
+            _font = font;
+            _tracking = tracking;
+            Width = Advance(text, font, tracking);
+        }
+
+        public override void Draw(IImageProcessingContext ctx, float x, float centerY)
+            => DrawText(ctx, _text, _font, _tracking, x, centerY, Color.White);
+    }
+
+    // the Dolby double-D mark + "Dolby", with ATMOS / VISION in small spaced capitals underneath
+    private sealed class DolbyPart : Part
+    {
+        private readonly string _sub;
+        private readonly float _s;
+        private readonly Font _word;
+        private readonly Font _subFont;
+        private readonly float _wordWidth;
+        private readonly float _subWidth;
+        private readonly float _topWidth;
+
+        public DolbyPart(string sub, float s)
+        {
+            _sub = sub;
+            _s = s;
+            _word = Font(500, 10.5f * s);
+            _subFont = Font(700, 5.5f * s);
+            _wordWidth = Advance("Dolby", _word, -0.01f);
+            _subWidth = string.IsNullOrEmpty(sub) ? 0 : Advance(sub, _subFont, 0.22f);
+            _topWidth = (13 * s) + (2 * s) + _wordWidth;
+            Width = Math.Max(_topWidth, _subWidth);
+        }
+
+        public override void Draw(IImageProcessingContext ctx, float x, float centerY)
+        {
+            var s = _s;
+            var hasSub = _subWidth > 0;
+            var topY = hasSub ? centerY - (3.6f * s) : centerY;
+            var left = x + ((Width - _topWidth) / 2f);
+
+            // mark: 13 x 7.5, from the 24 x 14 logo (two D's back to back)
+            var k = 13f * s / 24f;
+            var markTop = topY - (7.5f * s / 2f);
+            ctx.Fill(Color.White, DShape(left, markTop, k, false));
+            ctx.Fill(Color.White, DShape(left, markTop, k, true));
+
+            DrawText(ctx, "Dolby", _word, -0.01f, left + (15 * s), topY + (0.4f * s), Color.White);
+            if (hasSub)
+            {
+                DrawText(ctx, _sub, _subFont, 0.22f, x + ((Width - _subWidth) / 2f) + (0.6f * s), topY + (7.6f * s), Color.FromRgba(255, 255, 255, 230));
+            }
+        }
+
+        // left D: square edge at x=0, round side bulging right; right D mirrored at x=24
+        private static IPath DShape(float ox, float oy, float k, bool mirrored)
+        {
+            var pts = new List<PointF>();
+            PointF P(float px, float py) => new(ox + ((mirrored ? 24 - px : px) * k), oy + (py * k));
+            pts.Add(P(0, 0));
+            pts.Add(P(5.5f, 0));
+            for (var i = 0; i <= 16; i++)
+            {
+                var a = (-90f + (180f * i / 16f)) * MathF.PI / 180f;
+                pts.Add(P(5.5f + (4.5f * MathF.Cos(a)), 7 + (7 * MathF.Sin(a))));
+            }
+
+            pts.Add(P(0, 14));
+            return new Polygon(new LinearLineSegment(pts.ToArray()));
+        }
+    }
+}
+
+/// <summary>
+/// Small helpers.
+/// </summary>
+internal static class Seq
+{
+    /// <summary>
+    /// The non-empty strings of a list.
+    /// </summary>
+    /// <param name="items">The list.</param>
+    /// <returns>Its non-empty strings.</returns>
+    public static IEnumerable<string> Where2(this IEnumerable<string?> items)
+    {
+        foreach (var i in items)
+        {
+            if (!string.IsNullOrEmpty(i))
+            {
+                yield return i;
+            }
+        }
     }
 }

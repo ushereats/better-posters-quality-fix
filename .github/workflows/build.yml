@@ -1,0 +1,104 @@
+name: Build, test and release
+
+# Every push to master: build, unit tests, badge previews on real btttr.cc posters, a real Jellyfin 12 test
+# (install, scan, run the poster task, look at the posters), then a release + manifest.json update, then a
+# check that Jellyfin installs that release from the plugin repository like a user would.
+on:
+  push:
+    branches: [master, "dev/**"]
+    paths-ignore: ["manifest.json", "**.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - id: v
+        run: echo "version=1.1.${{ github.run_number }}.0" >> "$GITHUB_OUTPUT"
+      - name: Real posters to preview the badges on
+        run: |
+          mkdir -p previews/in previews/out
+          for id in tt0111161 tt1375666 tt0903747 tt0816692; do
+            curl -fsSL "https://btttr.cc/poster/imdb/poster-default/$id.jpg" -o "previews/in/$id.jpg" || true
+            curl -fsSL "https://btttr.cc/poster-n/imdb/poster-default/$id.jpg?tag=none" -o "previews/in/$id-plain.jpg" || true
+          done
+          ls -la previews/in
+      - name: Tests (+ badge previews)
+        env:
+          BP_PREVIEW_IN: ${{ github.workspace }}/previews/in
+          BP_PREVIEW_OUT: ${{ github.workspace }}/previews/out
+        run: dotnet test BetterPosters.sln -c Release
+      - name: Package
+        run: |
+          V=${{ steps.v.outputs.version }}
+          dotnet publish BetterPosters/BetterPosters.csproj -c Release -o publish -p:Version=$V -p:AssemblyVersion=$V -p:FileVersion=$V
+          mkdir -p dist
+          (cd publish && zip -q ../dist/better-posters-quality-fix_$V.zip BetterPosters.dll SixLabors.*.dll)
+          unzip -l dist/*.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin
+          path: dist/*.zip
+      - name: Real Jellyfin test (from the zip)
+        run: bash ci/jellyfin-test.sh zip dist/better-posters-quality-fix_${{ steps.v.outputs.version }}.zip previews/jellyfin
+      - name: Save previews (branch "previews")
+        if: always()
+        run: |
+          mkdir -p /tmp/p && cp -r previews/. /tmp/p/ 2>/dev/null || true
+          cd /tmp/p && git init -q && git checkout -q -b p
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm "previews ${GITHUB_SHA}" || true
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" p:refs/heads/previews
+
+  release:
+    needs: build
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: plugin
+          path: dist
+      - name: Release + manifest.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=${{ needs.build.outputs.version }}
+          TAG=${V%.0}
+          ZIP=dist/better-posters-quality-fix_$V.zip
+          NOTES=$(awk '/^## \[Unreleased\]/{f=1;next} /^## \[/{f=0} f' CHANGELOG.md)
+          [ -n "$(echo "$NOTES" | tr -d '[:space:]')" ] || NOTES="Maintenance build."
+          gh release create "$TAG" "$ZIP" --title "$TAG" --notes "$NOTES" --target "$GITHUB_SHA"
+          python3 ci/manifest.py "$V" "$ZIP" "https://github.com/${{ github.repository }}/releases/download/$TAG/$(basename $ZIP)" "$NOTES"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "manifest: $V [skip ci]" && git push origin HEAD:master
+
+  install-check:
+    needs: release
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install from the plugin repository like a user, then posters
+        run: |
+          SHA=$(git ls-remote origin refs/heads/master | cut -f1)
+          bash ci/jellyfin-test.sh repo "https://raw.githubusercontent.com/${{ github.repository }}/$SHA/manifest.json" out
+      - name: Save results (branch "install-check")
+        if: always()
+        run: |
+          mkdir -p /tmp/p && cp -r out/. /tmp/p/ 2>/dev/null || true
+          cd /tmp/p && git init -q && git checkout -q -b p
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm "install check ${GITHUB_SHA}" || true
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" p:refs/heads/install-check

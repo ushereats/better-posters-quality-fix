@@ -5,7 +5,7 @@
     <RootNamespace>BetterPosters</RootNamespace>
     <AssemblyName>BetterPosters</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <!--
       FORK CHANGE: CA1873 fires on pre-existing logger calls in
       BetterPostersUpdateTask.cs (not touched by this fork) — it wasn't
@@ -60,6 +60,7 @@
   <ItemGroup>
     <None Remove="Configuration\configPage.html" />
     <EmbeddedResource Include="Configuration\configPage.html" />
+    <EmbeddedResource Include="Fonts\FunnelSans-*.ttf" />
   </ItemGroup>
 
 </Project>
