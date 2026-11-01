@@ -26,7 +26,7 @@ sudo mkdir -p /srv/media/movies /srv/media/shows && sudo chown -R "$USER" /srv/m
 M1="/srv/media/movies/The Shawshank Redemption (1994)"; mkdir -p "$M1"
 $FF -v error -y -f lavfi -i "testsrc2=s=3840x2160:d=1:r=24" -f lavfi -i "anullsrc=r=48000:cl=5.1" -t 1 \
   -c:v libx264 -preset ultrafast -profile:v high10 -pix_fmt yuv420p10le \
-  -color_primaries bt2020 -color_trc smpte2084 -colorspace bt2020nc -bsf:v h264_metadata=colour_primaries=9:transfer_characteristics=16:matrix_coefficients=9 -c:a eac3 -b:a 384k "$M1/The Shawshank Redemption (1994).mkv"
+  -color_primaries bt2020 -color_trc smpte2084 -colorspace bt2020nc -vf "setparams=color_primaries=bt2020:color_trc=smpte2084:colorspace=bt2020nc" -c:a eac3 -b:a 384k "$M1/The Shawshank Redemption (1994).mkv"
 /usr/lib/jellyfin-ffmpeg/ffprobe -v error -select_streams v -show_entries stream=color_transfer,color_primaries,pix_fmt -of compact "$M1/The Shawshank Redemption (1994).mkv" | tee "$OUT/hdr-probe.txt"
 printf '<movie><title>The Shawshank Redemption</title><year>1994</year><imdbid>tt0111161</imdbid><uniqueid type="imdb" default="true">tt0111161</uniqueid></movie>' > "$M1/movie.nfo"
 M2="/srv/media/movies/Inception (2010)"; mkdir -p "$M2"
