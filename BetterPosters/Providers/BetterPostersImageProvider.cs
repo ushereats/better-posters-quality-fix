@@ -61,7 +61,7 @@ public class BetterPostersImageProvider : IRemoteImageProvider, IHasOrder
     /// <inheritdoc />
     public bool Supports(BaseItem item)
     {
-        return item is Movie or Series;
+        return PosterService.Handles(item);
     }
 
     /// <inheritdoc />
@@ -80,14 +80,27 @@ public class BetterPostersImageProvider : IRemoteImageProvider, IHasOrder
             return Task.FromResult<IEnumerable<RemoteImageInfo>>([]);
         }
 
+        var configuration = Plugin.Instance?.Configuration ?? new PluginConfiguration();
         var imdbId = item.GetProviderId(MetadataProvider.Imdb);
-        if (string.IsNullOrWhiteSpace(imdbId))
+        string url;
+        if (PosterService.StudioOnly(item))
+        {
+            // seasons and collections: studio posters only (made in GetImageResponse; this link is just a handle)
+            if (configuration.Style != PosterStyle.Studio)
+            {
+                return Task.FromResult<IEnumerable<RemoteImageInfo>>([]);
+            }
+
+            url = $"https://image.tmdb.org/better-posters/{item.Id:N}.jpg";
+        }
+        else if (string.IsNullOrWhiteSpace(imdbId))
         {
             return Task.FromResult<IEnumerable<RemoteImageInfo>>([]);
         }
-
-        var configuration = Plugin.Instance?.Configuration ?? new PluginConfiguration();
-        var url = BetterPosterUrlBuilder.Build(imdbId, configuration);
+        else
+        {
+            url = BetterPosterUrlBuilder.Build(imdbId, configuration);
+        }
 
         // Embed the item's id so GetImageResponse (which only receives the URL
         // string, per IRemoteImageProvider) can look the item back up and read
@@ -134,7 +147,7 @@ public class BetterPostersImageProvider : IRemoteImageProvider, IHasOrder
             _logger.LogWarning(ex, "Couldn't read the quality of {Name}", item.Name);
         }
 
-        var (status, bytes) = await _posters.MakeAsync(item, cleanUrl, quality, cancellationToken).ConfigureAwait(false);
+        var (status, bytes) = await _posters.MakeAsync(item, PosterService.StudioOnly(item) ? null : cleanUrl, quality, cancellationToken).ConfigureAwait(false);
         var response = new HttpResponseMessage(status);
         if (bytes is not null)
         {

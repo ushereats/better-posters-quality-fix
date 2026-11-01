@@ -5,247 +5,420 @@
     <title>Better Posters</title>
 </head>
 <body>
-    <div id="BetterPostersConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-button,emby-select,emby-checkbox">
+    <div id="BetterPostersConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-button">
+        <style>
+            #BetterPostersConfigPage .bp { --bp-accent: var(--theme-primary-color, #00a4dc); --bp-bg: rgba(255,255,255,.035); --bp-line: rgba(255,255,255,.09); --bp-dim: rgba(255,255,255,.62); --bp-radius: 16px; max-width: 980px; margin: 0 auto; padding: 8px 4px 120px; color: #f2f2f2; font-feature-settings: "tnum"; }
+            #BetterPostersConfigPage .bp * { box-sizing: border-box; }
+            #BetterPostersConfigPage .bp-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 6px 0 18px; }
+            #BetterPostersConfigPage .bp-title { font-size: 2em; font-weight: 800; letter-spacing: -.02em; margin: 0; line-height: 1.1; }
+            #BetterPostersConfigPage .bp-sub { color: var(--bp-dim); margin-top: 4px; font-size: .95em; }
+            #BetterPostersConfigPage .bp-card { background: var(--bp-bg); border: 1px solid var(--bp-line); border-radius: var(--bp-radius); padding: 18px 20px; margin-bottom: 16px; backdrop-filter: blur(6px); }
+            #BetterPostersConfigPage .bp-card h2 { margin: 0 0 4px; font-size: 1.15em; font-weight: 700; letter-spacing: -.01em; }
+            #BetterPostersConfigPage .bp-card > .bp-desc { color: var(--bp-dim); font-size: .9em; margin: 0 0 14px; line-height: 1.45; }
+            #BetterPostersConfigPage .bp-nav { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; padding: 10px 0; margin-bottom: 8px; background: linear-gradient(var(--bp-page-bg, #101010) 70%, transparent); overflow-x: auto; scrollbar-width: none; }
+            #BetterPostersConfigPage .bp-nav a { flex: 0 0 auto; text-decoration: none; color: var(--bp-dim); font-weight: 600; font-size: .9em; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--bp-line); background: rgba(255,255,255,.03); transition: background .15s, color .15s, border-color .15s; }
+            #BetterPostersConfigPage .bp-nav a:hover { color: #fff; }
+            #BetterPostersConfigPage .bp-nav a.on { color: #fff; background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.22); }
+            #BetterPostersConfigPage .bp-section { scroll-margin-top: 64px; }
+            /* status */
+            #BetterPostersConfigPage .bp-status { display: grid; grid-template-columns: 1fr auto; gap: 14px 18px; align-items: center; }
+            #BetterPostersConfigPage .bp-status-line { font-weight: 700; font-size: 1.05em; }
+            #BetterPostersConfigPage .bp-status-sub { color: var(--bp-dim); font-size: .88em; margin-top: 3px; min-height: 1.2em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            #BetterPostersConfigPage .bp-bar { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; }
+            #BetterPostersConfigPage .bp-bar > i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--bp-accent), #7dd3fc); transition: width .5s ease; }
+            #BetterPostersConfigPage .bp-stats { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
+            #BetterPostersConfigPage .bp-stat { font-size: .82em; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--bp-dim); }
+            #BetterPostersConfigPage .bp-stat b { color: #fff; font-weight: 700; margin-right: 3px; }
+            #BetterPostersConfigPage .bp-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+            #BetterPostersConfigPage .bp-btn { appearance: none; border: 1px solid var(--bp-line); background: rgba(255,255,255,.07); color: #fff; font: inherit; font-weight: 650; font-size: .92em; padding: 10px 16px; border-radius: 12px; cursor: pointer; transition: transform .1s, background .15s, opacity .15s; }
+            #BetterPostersConfigPage .bp-btn:hover { background: rgba(255,255,255,.13); }
+            #BetterPostersConfigPage .bp-btn:active { transform: scale(.97); }
+            #BetterPostersConfigPage .bp-btn:disabled { opacity: .45; cursor: default; }
+            #BetterPostersConfigPage .bp-btn.primary { background: #fff; color: #111; border-color: #fff; }
+            #BetterPostersConfigPage .bp-btn.primary:hover { background: #e9e9e9; }
+            /* style picker */
+            #BetterPostersConfigPage .bp-styles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+            #BetterPostersConfigPage .bp-style { position: relative; display: flex; gap: 14px; align-items: center; padding: 14px; border-radius: 14px; border: 1.5px solid var(--bp-line); background: rgba(255,255,255,.025); cursor: pointer; transition: border-color .15s, background .15s; }
+            #BetterPostersConfigPage .bp-style:hover { background: rgba(255,255,255,.05); }
+            #BetterPostersConfigPage .bp-style input { position: absolute; opacity: 0; pointer-events: none; }
+            #BetterPostersConfigPage .bp-style.on { border-color: var(--bp-accent); background: rgba(0,164,220,.08); }
+            #BetterPostersConfigPage .bp-style b { display: block; font-size: 1em; }
+            #BetterPostersConfigPage .bp-style span { display: block; color: var(--bp-dim); font-size: .85em; margin-top: 3px; line-height: 1.4; }
+            #BetterPostersConfigPage .bp-mock { flex: 0 0 auto; width: 58px; height: 87px; border-radius: 8px; position: relative; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.45); }
+            #BetterPostersConfigPage .bp-mock.studio { background: radial-gradient(60% 50% at 50% 35%, #5b7fa6, transparent 70%), linear-gradient(#2c3e57, #0c111a); }
+            #BetterPostersConfigPage .bp-mock.studio::before { content: ""; position: absolute; left: 12px; right: 12px; bottom: 18px; height: 9px; border-radius: 3px; background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.4); }
+            #BetterPostersConfigPage .bp-mock.studio::after { content: ""; position: absolute; left: 18px; right: 18px; bottom: 9px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.55); }
+            #BetterPostersConfigPage .bp-mock.btttr { background: linear-gradient(160deg, #b6763b, #3d1d0d); }
+            #BetterPostersConfigPage .bp-mock.btttr::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 9px; border-radius: 0 0 3px 3px; background: #e2a35c; }
+            #BetterPostersConfigPage .bp-mock.btttr::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 10px; height: 12px; border-radius: 2px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.85) 0 6px, transparent 6px 8px); }
+            #BetterPostersConfigPage .bp-mock i { position: absolute; top: 13px; right: 6px; width: 15px; height: 8px; border-radius: 2px; background: #e8e8e6; }
+            /* rows */
+            #BetterPostersConfigPage .bp-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--bp-line); }
+            #BetterPostersConfigPage .bp-row:first-of-type { border-top: 0; }
+            #BetterPostersConfigPage .bp-row-text { min-width: 0; }
+            #BetterPostersConfigPage .bp-row-text b { display: block; font-weight: 650; }
+            #BetterPostersConfigPage .bp-row-text span { display: block; color: var(--bp-dim); font-size: .85em; margin-top: 2px; line-height: 1.4; }
+            #BetterPostersConfigPage .bp-switch { position: relative; flex: 0 0 auto; width: 46px; height: 28px; }
+            #BetterPostersConfigPage .bp-switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+            #BetterPostersConfigPage .bp-switch i { position: absolute; inset: 0; border-radius: 99px; background: rgba(255,255,255,.18); transition: background .18s; }
+            #BetterPostersConfigPage .bp-switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.35); transition: transform .18s; }
+            #BetterPostersConfigPage .bp-switch input:checked + i { background: var(--bp-accent); }
+            #BetterPostersConfigPage .bp-switch input:checked + i::after { transform: translateX(18px); }
+            #BetterPostersConfigPage .bp-switch input:focus-visible + i { outline: 2px solid #fff; outline-offset: 2px; }
+            #BetterPostersConfigPage .bp-seg { display: inline-flex; padding: 3px; border-radius: 12px; background: rgba(255,255,255,.06); border: 1px solid var(--bp-line); flex-wrap: wrap; }
+            #BetterPostersConfigPage .bp-seg label { position: relative; padding: 7px 13px; border-radius: 9px; font-size: .88em; font-weight: 600; color: var(--bp-dim); cursor: pointer; }
+            #BetterPostersConfigPage .bp-seg input { position: absolute; opacity: 0; pointer-events: none; }
+            #BetterPostersConfigPage .bp-seg label.on { background: rgba(255,255,255,.14); color: #fff; }
+            #BetterPostersConfigPage .bp-select, #BetterPostersConfigPage .bp-input { font: inherit; color: #fff; background: rgba(255,255,255,.07); border: 1px solid var(--bp-line); border-radius: 10px; padding: 9px 12px; min-width: 200px; }
+            #BetterPostersConfigPage .bp-select option { color: #111; }
+            #BetterPostersConfigPage .bp-range { display: flex; align-items: center; gap: 12px; min-width: 220px; }
+            #BetterPostersConfigPage .bp-range input { flex: 1; accent-color: var(--bp-accent); }
+            #BetterPostersConfigPage .bp-range output { width: 3ch; text-align: right; font-weight: 700; }
+            #BetterPostersConfigPage .bp-note { font-size: .85em; color: var(--bp-dim); padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.04); margin-top: 10px; line-height: 1.45; }
+            #BetterPostersConfigPage .bp-only-studio[hidden], #BetterPostersConfigPage .bp-only-btttr[hidden] { display: none !important; }
+            /* save bar */
+            #BetterPostersConfigPage .bp-save { position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 140%); z-index: 20; display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 18px; border-radius: 16px; background: rgba(28,28,30,.92); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 16px 40px rgba(0,0,0,.5); backdrop-filter: blur(14px); transition: transform .25s cubic-bezier(.2,.8,.2,1); }
+            #BetterPostersConfigPage .bp-save.show { transform: translate(-50%, 0); }
+            #BetterPostersConfigPage .bp-save span { font-weight: 600; font-size: .92em; white-space: nowrap; }
+            @media (max-width: 640px) {
+                #BetterPostersConfigPage .bp-status { grid-template-columns: 1fr; }
+                #BetterPostersConfigPage .bp-actions { justify-content: stretch; }
+                #BetterPostersConfigPage .bp-actions .bp-btn { flex: 1 1 auto; }
+                #BetterPostersConfigPage .bp-row { flex-wrap: wrap; }
+                #BetterPostersConfigPage .bp-select, #BetterPostersConfigPage .bp-input, #BetterPostersConfigPage .bp-range { min-width: 0; width: 100%; }
+            }
+        </style>
         <div data-role="content">
             <div class="content-primary">
-                <form id="BetterPostersConfigForm">
-                    <h2>Poster Style</h2>
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="Style">Style</label>
-                        <select is="emby-select" id="Style" name="Style" class="emby-select-withcolor emby-select">
-                            <option value="Studio">Studio: clean artwork with the title's logo (made here from TMDb)</option>
-                            <option value="BetterPosters">Better Posters: btttr.cc's ready-made posters</option>
-                        </select>
-                        <div class="fieldDescription">Studio posters use each title's clean artwork (no text printed on it) with its logo placed over a soft fade at the bottom, and an info line underneath. Titles with no clean artwork on TMDb get the Better Posters one instead.</div>
+                <form id="BetterPostersConfigForm" class="bp" autocomplete="off">
+                    <div class="bp-head">
+                        <div>
+                            <h1 class="bp-title">Better Posters</h1>
+                            <div class="bp-sub">Posters with your files' real quality, for every movie, show, season and collection.</div>
+                        </div>
                     </div>
-                    <div class="bpStudioOnly">
-                        <div class="selectContainer">
-                            <label class="selectLabel" for="StudioTopTag">Tag at the top</label>
-                            <select is="emby-select" id="StudioTopTag" name="StudioTopTag" class="emby-select-withcolor emby-select">
-                                <option value="None">None</option>
-                                <option value="Studio">Studio / network (e.g. Adult Swim, Netflix)</option>
-                                <option value="Genre">Genre</option>
+
+                    <!-- live progress -->
+                    <div class="bp-card bp-status" id="bpStatusCard">
+                        <div>
+                            <div class="bp-status-line" id="bpStatusLine">Loading…</div>
+                            <div class="bp-status-sub" id="bpStatusSub"></div>
+                        </div>
+                        <div class="bp-actions">
+                            <button type="button" class="bp-btn primary" id="bpRunNow" title="Only titles that changed (also runs every night at 4 AM)">Update posters now</button>
+                            <button type="button" class="bp-btn" id="bpRunAll" title="Makes every poster again, e.g. after a plugin update">Replace every poster</button>
+                        </div>
+                        <div class="bp-bar" id="bpBar" hidden><i></i></div>
+                        <div class="bp-stats" id="bpStats" hidden></div>
+                    </div>
+
+                    <nav class="bp-nav" id="bpNav">
+                        <a href="#bp-style" data-to="bp-style">Style</a>
+                        <a href="#bp-look" data-to="bp-look">Look</a>
+                        <a href="#bp-badges" data-to="bp-badges">Badges</a>
+                        <a href="#bp-updating" data-to="bp-updating">Updating</a>
+                        <a href="#bp-advanced" data-to="bp-advanced">Advanced</a>
+                    </nav>
+
+                    <section class="bp-card bp-section" id="bp-style">
+                        <h2>Style</h2>
+                        <p class="bp-desc">How posters are made.</p>
+                        <div class="bp-styles">
+                            <label class="bp-style" data-style="Studio">
+                                <input type="radio" name="Style" value="Studio" />
+                                <div class="bp-mock studio"><i></i></div>
+                                <div><b>Studio</b><span>Each title's clean artwork from TMDb, its logo over a soft fade, an info line underneath. Sharp and the same look everywhere.</span></div>
+                            </label>
+                            <label class="bp-style" data-style="BetterPosters">
+                                <input type="radio" name="Style" value="BetterPosters" />
+                                <div class="bp-mock btttr"><i></i></div>
+                                <div><b>Better Posters</b><span>btttr.cc's ready-made posters, with trend tags like "Oscar Nominee". Movies and shows only.</span></div>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="bp-card bp-section" id="bp-look">
+                        <h2>Look</h2>
+                        <p class="bp-desc bp-only-studio">What goes on a studio poster.</p>
+                        <p class="bp-desc bp-only-btttr" hidden>What btttr.cc puts on its posters.</p>
+
+                        <div class="bp-row bp-only-studio">
+                            <div class="bp-row-text"><b>Title logo</b><span>The title's logo at the bottom. Off (or no logo on TMDb): the title in text.</span></div>
+                            <label class="bp-switch"><input type="checkbox" id="StudioLogo" /><i></i></label>
+                        </div>
+                        <div class="bp-row bp-only-studio">
+                            <div class="bp-row-text"><b>Tag at the top</b><span>A tag hanging from the top edge, coloured from the poster.</span></div>
+                            <div class="bp-seg" id="StudioTopTag">
+                                <label><input type="radio" name="StudioTopTag" value="None" />None</label>
+                                <label><input type="radio" name="StudioTopTag" value="Studio" />Studio / network</label>
+                                <label><input type="radio" name="StudioTopTag" value="Genre" />Genre</label>
+                            </div>
+                        </div>
+                        <div class="bp-row bp-only-studio">
+                            <div class="bp-row-text"><b>Fade at the bottom</b><span>How dark it gets under the title. 0 = none, 70 = normal.</span></div>
+                            <div class="bp-range"><input type="range" id="StudioFade" min="0" max="100" step="5" /><output id="StudioFadeValue">70</output></div>
+                        </div>
+                        <div class="bp-row bp-only-btttr" hidden>
+                            <div class="bp-row-text"><b>Trend tags</b><span>Trending, New, IMDb #3, Oscar Nominee…</span></div>
+                            <label class="bp-switch"><input type="checkbox" id="EnableTrendTags" /><i></i></label>
+                        </div>
+                        <div class="bp-row bp-only-studio">
+                            <div class="bp-row-text"><b>Year</b><span>In the info line under the title.</span></div>
+                            <label class="bp-switch"><input type="checkbox" id="StudioShowYear" /><i></i></label>
+                        </div>
+                        <div class="bp-row">
+                            <div class="bp-row-text"><b>Genre</b><span>At the bottom of the poster.</span></div>
+                            <label class="bp-switch"><input type="checkbox" id="EnableGenre" /><i></i></label>
+                        </div>
+                        <div class="bp-row">
+                            <div class="bp-row-text"><b>Rating</b><span class="bp-only-studio">Your server's community rating, with a star.</span><span class="bp-only-btttr" hidden>Star rating at the bottom.</span></div>
+                            <label class="bp-switch"><input type="checkbox" id="EnableRating" /><i></i></label>
+                        </div>
+                        <div class="bp-row bp-only-btttr" hidden>
+                            <div class="bp-row-text"><b>Rating source</b><span>Where btttr.cc's rating comes from.</span></div>
+                            <select class="bp-select" id="RatingSource">
+                                <option value="Average">Average</option>
+                                <option value="Imdb">IMDb (/10)</option>
+                                <option value="Tmdb">TMDB (/10)</option>
+                                <option value="RottenTomatoes">Rotten Tomatoes (%)</option>
+                                <option value="Metacritic">Metacritic (/100)</option>
+                                <option value="Trakt">Trakt (/10)</option>
+                                <option value="Letterboxd">Letterboxd (/5)</option>
+                                <option value="RogerEbert">Roger Ebert (/4)</option>
                             </select>
-                            <div class="fieldDescription">A tag hanging from the top edge, coloured from the poster itself. The quality badges sit under it.</div>
                         </div>
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label class="emby-checkbox-label">
-                                <input id="StudioLogo" name="StudioLogo" type="checkbox" is="emby-checkbox" />
-                                <span>Title logo</span>
-                            </label>
-                            <div class="fieldDescription checkboxFieldDescription">The title's logo at the bottom. Off (or no logo on TMDb): the title in text.</div>
+                        <div class="bp-row">
+                            <div class="bp-row-text"><b>Age rating</b><span>PG-13, TV-MA, R…</span></div>
+                            <label class="bp-switch"><input type="checkbox" id="EnableAgeRating" /><i></i></label>
                         </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="StudioFade">Fade at the bottom (0-100)</label>
-                            <input id="StudioFade" name="StudioFade" type="number" is="emby-input" min="0" max="100" step="5" />
-                            <div class="fieldDescription">How dark the fade under the title is. 0 = none, 70 = normal, 100 = black at the very bottom.</div>
+                        <div class="bp-row">
+                            <div class="bp-row-text"><b>Language</b><span>Of the posters, and of the title logos.</span></div>
+                            <select class="bp-select" id="Language">
+                                <option value="English">English</option>
+                                <option value="Spanish">Español</option>
+                                <option value="French">Français</option>
+                                <option value="German">Deutsch</option>
+                                <option value="PortugueseBrazil">Português (Brasil)</option>
+                                <option value="PortuguesePortugal">Português (Portugal)</option>
+                                <option value="Italian">Italiano</option>
+                                <option value="Dutch">Nederlands</option>
+                                <option value="Polish">Polski</option>
+                                <option value="Russian">Русский</option>
+                                <option value="Turkish">Türkçe</option>
+                                <option value="Arabic">العربية</option>
+                                <option value="Japanese">日本語</option>
+                                <option value="Korean">한국어</option>
+                                <option value="Chinese">中文</option>
+                                <option value="Hindi">हिन्दी</option>
+                                <option value="Swedish">Svenska</option>
+                                <option value="Czech">Čeština</option>
+                            </select>
                         </div>
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label class="emby-checkbox-label">
-                                <input id="StudioShowYear" name="StudioShowYear" type="checkbox" is="emby-checkbox" />
-                                <span>Year</span>
-                            </label>
-                            <div class="fieldDescription checkboxFieldDescription">The year in the info line under the title (Ratings, Genre and Age Rating below also go in that line).</div>
+                    </section>
+
+                    <section class="bp-card bp-section" id="bp-badges">
+                        <h2>Badges</h2>
+                        <p class="bp-desc">Read from your actual files, the same as Jellyfin's Media Info.</p>
+                        <div class="bp-row">
+                            <div class="bp-row-text"><b>Quality badges</b><span>4K / 1440p / 1080p / 720p, HDR / HDR10+ / HLG, Dolby Vision and Dolby Atmos / Digital. Shows and seasons use their best episodes, collections their best film.</span></div>
+                            <label class="bp-switch"><input type="checkbox" id="EnableQualityTags" /><i></i></label>
                         </div>
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="TmdbApiKey">TMDb API key (optional)</label>
-                            <input id="TmdbApiKey" name="TmdbApiKey" type="password" is="emby-input" autocomplete="off" />
-                            <div class="fieldDescription">Empty = the key Jellyfin's own TMDb plugin uses.</div>
+                    </section>
+
+                    <section class="bp-card bp-section" id="bp-updating">
+                        <h2>Updating</h2>
+                        <p class="bp-desc">Posters update by themselves: new titles within a minute, everything else every night at 4 AM (only titles whose poster, quality or settings changed).</p>
+                        <div class="bp-row">
+                            <div class="bp-row-text"><b>All movie and show libraries</b><span>Off: only libraries where "Better Posters" is ticked as an image source (in the library's settings, or the theme's Custom posters page).</span></div>
+                            <label class="bp-switch"><input type="checkbox" id="ApplyToAllLibraries" /><i></i></label>
                         </div>
+                        <div class="bp-row">
+                            <div class="bp-row-text"><b>New titles straight away</b><span>New movies, shows and seasons (and files you upgrade, e.g. to 4K) get their poster within a minute.</span></div>
+                            <label class="bp-switch"><input type="checkbox" id="AutoApplyNewTitles" /><i></i></label>
+                        </div>
+                    </section>
+
+                    <section class="bp-card bp-section" id="bp-advanced">
+                        <h2>Advanced</h2>
+                        <p class="bp-desc">Artwork downloaded from TMDb is kept on the server, so rebuilding posters after a settings change is quick and downloads nothing again.</p>
+                        <div class="bp-row">
+                            <div class="bp-row-text"><b>TMDb API key</b><span>Optional. Empty = the key Jellyfin's own TMDb plugin uses.</span></div>
+                            <input class="bp-input" id="TmdbApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Jellyfin's key" />
+                        </div>
+                    </section>
+
+                    <div class="bp-save" id="bpSave">
+                        <span>Unsaved changes</span>
+                        <button type="button" class="bp-btn" id="bpDiscard">Discard</button>
+                        <button type="submit" class="bp-btn primary">Save</button>
                     </div>
-                    <h2>Poster Options</h2>
-                    <div class="checkboxContainer checkboxContainer-withDescription bpBtttrOnly">
-                        <label class="emby-checkbox-label">
-                            <input id="EnableTrendTags" name="EnableTrendTags" type="checkbox" is="emby-checkbox" />
-                            <span>Trend Tags</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Trending, New, IMDb #3 (Better Posters style only)</div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="EnableQualityTags" name="EnableQualityTags" type="checkbox" is="emby-checkbox" />
-                            <span>Quality badges</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">4K / 1080p, HDR / HDR10+ / Dolby Vision and Dolby Atmos, read from your actual files (the same as Jellyfin's Media Info) and drawn on the poster.</div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="EnableGenre" name="EnableGenre" type="checkbox" is="emby-checkbox" />
-                            <span>Genre</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Genre at the bottom</div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="EnableRating" name="EnableRating" type="checkbox" is="emby-checkbox" />
-                            <span>Ratings</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Star rating at the bottom (Studio style: your server's community rating)</div>
-                    </div>
-                    <div class="selectContainer bpBtttrOnly">
-                        <label class="selectLabel" for="RatingSource">Ratings Source (Better Posters style)</label>
-                        <select is="emby-select" id="RatingSource" name="RatingSource" class="emby-select-withcolor emby-select">
-                            <option value="Average">Average</option>
-                            <option value="Imdb">IMDb (/10)</option>
-                            <option value="Tmdb">TMDB (/10)</option>
-                            <option value="RottenTomatoes">Rotten Tomatoes (%)</option>
-                            <option value="Metacritic">Metacritic (/100)</option>
-                            <option value="Trakt">Trakt (/10)</option>
-                            <option value="Letterboxd">Letterboxd (/5)</option>
-                            <option value="RogerEbert">Roger Ebert (/4)</option>
-                        </select>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="EnableAgeRating" name="EnableAgeRating" type="checkbox" is="emby-checkbox" />
-                            <span>Age Rating</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">PG-13, TV-MA, R</div>
-                    </div>
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="Language">Language (posters, and title logos in the Studio style)</label>
-                        <select is="emby-select" id="Language" name="Language" class="emby-select-withcolor emby-select">
-                            <option value="English">English</option>
-                            <option value="Spanish">Español</option>
-                            <option value="French">Français</option>
-                            <option value="German">Deutsch</option>
-                            <option value="PortugueseBrazil">Português (Brasil)</option>
-                            <option value="PortuguesePortugal">Português (Portugal)</option>
-                            <option value="Italian">Italiano</option>
-                            <option value="Dutch">Nederlands</option>
-                            <option value="Polish">Polski</option>
-                            <option value="Russian">Русский</option>
-                            <option value="Turkish">Türkçe</option>
-                            <option value="Arabic">العربية</option>
-                            <option value="Japanese">日本語</option>
-                            <option value="Korean">한국어</option>
-                            <option value="Chinese">中文</option>
-                            <option value="Hindi">हिन्दी</option>
-                            <option value="Swedish">Svenska</option>
-                            <option value="Czech">Čeština</option>
-                        </select>
-                    </div>
-                    <h2>Updating</h2>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="ApplyToAllLibraries" name="ApplyToAllLibraries" type="checkbox" is="emby-checkbox" />
-                            <span>All movie and show libraries</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Off: only libraries where "Better Posters" is ticked under Image fetchers in the library's settings.</div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="AutoApplyNewTitles" name="AutoApplyNewTitles" type="checkbox" is="emby-checkbox" />
-                            <span>New titles straight away</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">New movies and shows (and files you upgrade, e.g. to 4K) get their poster within a minute, not just at the nightly run.</div>
-                    </div>
-                    <div>
-                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
-                            <span>Save</span>
-                        </button>
-                    </div>
-                    <div style="display:flex;gap:.6em;flex-wrap:wrap;margin-top:1em">
-                        <button is="emby-button" type="button" id="bpRunNow" class="raised emby-button" style="flex:1 1 12em"><span>Update posters now</span></button>
-                        <button is="emby-button" type="button" id="bpRunAll" class="raised emby-button" style="flex:1 1 12em"><span>Replace every poster now</span></button>
-                    </div>
-                    <div class="fieldDescription" id="bpStatus" style="margin-top:.6em">"Update posters now" only touches titles that changed (it also runs every night). "Replace every poster now" makes all of them again. Changing the options above is picked up by the next run on its own.</div>
                 </form>
             </div>
         </div>
         <script type="text/javascript">
-            var BetterPostersConfig = {
-                pluginUniqueId: '066ff97a-0628-4d1d-b256-840f1e25f8df'
-            };
+            (function () {
+                var ID = '066ff97a-0628-4d1d-b256-840f1e25f8df';
+                var page = document.querySelector('#BetterPostersConfigPage');
+                var form = page.querySelector('#BetterPostersConfigForm');
+                var $ = function (id) { return page.querySelector('#' + id); };
+                var CHECKS = ['StudioLogo', 'StudioShowYear', 'EnableTrendTags', 'EnableGenre', 'EnableRating', 'EnableAgeRating', 'EnableQualityTags', 'ApplyToAllLibraries', 'AutoApplyNewTitles'];
+                var config = null, saved = '', poll = 0;
 
-            function betterPostersElement(id) {
-                return document.querySelector('#' + id);
-            }
-
-            // show only the options that apply to the chosen style
-            function betterPostersStyle() {
-                var studio = betterPostersElement('Style').value === 'Studio';
-                Array.prototype.forEach.call(document.querySelectorAll('#BetterPostersConfigPage .bpStudioOnly'), function (e) { e.style.display = studio ? '' : 'none'; });
-                Array.prototype.forEach.call(document.querySelectorAll('#BetterPostersConfigPage .bpBtttrOnly'), function (e) { e.style.display = studio ? 'none' : ''; });
-            }
-            betterPostersElement('Style').addEventListener('change', betterPostersStyle);
-
-            document.querySelector('#BetterPostersConfigPage')
-                .addEventListener('pageshow', function() {
-                    Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(BetterPostersConfig.pluginUniqueId).then(function (config) {
-                        betterPostersElement('Style').value = config.Style || 'Studio';
-                        betterPostersElement('StudioTopTag').value = config.StudioTopTag || 'None';
-                        betterPostersElement('StudioLogo').checked = config.StudioLogo !== false;
-                        betterPostersElement('StudioFade').value = config.StudioFade == null ? 70 : config.StudioFade;
-                        betterPostersElement('StudioShowYear').checked = config.StudioShowYear !== false;
-                        betterPostersElement('TmdbApiKey').value = config.TmdbApiKey || '';
-                        betterPostersStyle();
-                        betterPostersElement('EnableTrendTags').checked = config.EnableTrendTags;
-                        betterPostersElement('EnableQualityTags').checked = config.EnableQualityTags;
-                        betterPostersElement('EnableGenre').checked = config.EnableGenre;
-                        betterPostersElement('EnableRating').checked = config.EnableRating;
-                        betterPostersElement('RatingSource').value = config.RatingSource;
-                        betterPostersElement('EnableAgeRating').checked = config.EnableAgeRating;
-                        betterPostersElement('Language').value = config.Language;
-                        betterPostersElement('ApplyToAllLibraries').checked = config.ApplyToAllLibraries !== false;
-                        betterPostersElement('AutoApplyNewTitles').checked = config.AutoApplyNewTitles !== false;
-                        Dashboard.hideLoadingMsg();
+                function radio(name) { var r = form.querySelector('input[name="' + name + '"]:checked'); return r ? r.value : null; }
+                function setRadio(name, value) {
+                    Array.prototype.forEach.call(form.querySelectorAll('input[name="' + name + '"]'), function (r) {
+                        r.checked = r.value === value;
+                        var l = r.closest('label'); if (l) l.classList.toggle('on', r.checked);
                     });
-                });
+                }
+                function read() {
+                    var c = {};
+                    CHECKS.forEach(function (k) { c[k] = $(k).checked; });
+                    c.Style = radio('Style') || 'Studio';
+                    c.StudioTopTag = radio('StudioTopTag') || 'None';
+                    c.StudioFade = parseInt($('StudioFade').value, 10) || 0;
+                    c.RatingSource = $('RatingSource').value;
+                    c.Language = $('Language').value;
+                    c.TmdbApiKey = $('TmdbApiKey').value.trim();
+                    return c;
+                }
+                function fill(c) {
+                    var def = { StudioLogo: true, StudioShowYear: true, ApplyToAllLibraries: true, AutoApplyNewTitles: true };
+                    CHECKS.forEach(function (k) { $(k).checked = c[k] == null ? !!def[k] : !!c[k]; });
+                    setRadio('Style', c.Style || 'Studio');
+                    setRadio('StudioTopTag', c.StudioTopTag || 'None');
+                    $('StudioFade').value = c.StudioFade == null ? 70 : c.StudioFade;
+                    $('StudioFadeValue').textContent = $('StudioFade').value;
+                    $('RatingSource').value = c.RatingSource || 'Average';
+                    $('Language').value = c.Language || 'English';
+                    $('TmdbApiKey').value = c.TmdbApiKey || '';
+                    style();
+                }
+                // only the options for the chosen style
+                function style() {
+                    var studio = radio('Style') !== 'BetterPosters';
+                    Array.prototype.forEach.call(page.querySelectorAll('.bp-only-studio'), function (e) { e.hidden = !studio; });
+                    Array.prototype.forEach.call(page.querySelectorAll('.bp-only-btttr'), function (e) { e.hidden = studio; });
+                    Array.prototype.forEach.call(page.querySelectorAll('.bp-style'), function (e) { e.classList.toggle('on', e.getAttribute('data-style') === radio('Style')); });
+                }
+                function dirty() { $('bpSave').classList.toggle('show', JSON.stringify(read()) !== saved); }
 
-            document.querySelector('#BetterPostersConfigForm')
-                .addEventListener('submit', function(e) {
-                    Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(BetterPostersConfig.pluginUniqueId).then(function (config) {
-                        config.Style = betterPostersElement('Style').value;
-                        config.StudioTopTag = betterPostersElement('StudioTopTag').value;
-                        config.StudioLogo = betterPostersElement('StudioLogo').checked;
-                        config.StudioFade = Math.max(0, Math.min(100, parseInt(betterPostersElement('StudioFade').value, 10) || 0));
-                        config.StudioShowYear = betterPostersElement('StudioShowYear').checked;
-                        config.TmdbApiKey = betterPostersElement('TmdbApiKey').value.trim();
-                        config.EnableTrendTags = betterPostersElement('EnableTrendTags').checked;
-                        config.EnableQualityTags = betterPostersElement('EnableQualityTags').checked;
-                        config.EnableGenre = betterPostersElement('EnableGenre').checked;
-                        config.EnableRating = betterPostersElement('EnableRating').checked;
-                        config.RatingSource = betterPostersElement('RatingSource').value;
-                        config.EnableAgeRating = betterPostersElement('EnableAgeRating').checked;
-                        config.Language = betterPostersElement('Language').value;
-                        config.ApplyToAllLibraries = betterPostersElement('ApplyToAllLibraries').checked;
-                        config.AutoApplyNewTitles = betterPostersElement('AutoApplyNewTitles').checked;
-                        ApiClient.updatePluginConfiguration(BetterPostersConfig.pluginUniqueId, config).then(function (result) {
-                            Dashboard.processPluginConfigurationUpdateResult(result);
+                function load() {
+                    return ApiClient.getPluginConfiguration(ID).then(function (c) {
+                        config = c;
+                        fill(c);
+                        saved = JSON.stringify(read());
+                        dirty();
+                    });
+                }
+                function save() {
+                    var c = read();
+                    Object.keys(c).forEach(function (k) { config[k] = c[k]; });
+                    return ApiClient.updatePluginConfiguration(ID, config).then(function (r) {
+                        saved = JSON.stringify(read());
+                        dirty();
+                        Dashboard.processPluginConfigurationUpdateResult(r);
+                    });
+                }
+
+                // ── live progress ──
+                function ago(iso) {
+                    var s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+                    return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago';
+                }
+                function stat(n, label) { return n ? '<span class="bp-stat"><b>' + n + '</b>' + label + '</span>' : ''; }
+                function show(st) {
+                    var bar = $('bpBar'), stats = $('bpStats');
+                    var pct = st.total ? Math.round(st.done * 100 / st.total) : 0;
+                    $('bpRunNow').disabled = $('bpRunAll').disabled = !!st.running;
+                    if (st.running) {
+                        var left = '';
+                        if (st.done > 3 && st.startedUtc) {
+                            var per = (Date.now() - new Date(st.startedUtc).getTime()) / st.done, rest = (st.total - st.done) * per / 60000;
+                            left = rest < 1 ? ' · under a minute left' : ' · about ' + Math.round(rest) + ' min left';
+                        }
+                        $('bpStatusLine').textContent = (st.replaceAll ? 'Replacing every poster: ' : 'Updating posters: ') + st.done + ' of ' + st.total + left;
+                        $('bpStatusSub').textContent = st.current ? 'Now: ' + st.current : '';
+                    } else if (st.finishedUtc) {
+                        $('bpStatusLine').textContent = (st.cancelled ? 'Stopped ' : 'Last run finished ') + ago(st.finishedUtc);
+                        $('bpStatusSub').textContent = st.done + ' of ' + st.total + ' titles checked.';
+                    } else {
+                        $('bpStatusLine').textContent = 'Ready';
+                        $('bpStatusSub').textContent = 'No run since Jellyfin started. Posters also update every night at 4 AM.';
+                    }
+                    bar.hidden = !(st.running || st.finishedUtc);
+                    bar.firstElementChild.style.width = (st.running ? pct : 100) + '%';
+                    stats.innerHTML = stat(st.updated, 'new posters') + stat(st.unchanged, 'already up to date') + stat(st.notFound, 'no poster found') + stat(st.skipped, 'skipped') + stat(st.failed, 'failed');
+                    stats.hidden = !stats.innerHTML;
+                    clearTimeout(poll);
+                    if (page.isConnected && !page.classList.contains('hide')) poll = setTimeout(check, st.running ? 1200 : 8000);
+                }
+                function check() {
+                    return ApiClient.getJSON(ApiClient.getUrl('BetterPosters/Status')).then(show, function () {
+                        $('bpStatusLine').textContent = 'Ready';
+                        $('bpStatusSub').textContent = 'Restart Jellyfin once after updating the plugin to see live progress here.';
+                    });
+                }
+                function run(all) {
+                    $('bpRunNow').disabled = $('bpRunAll').disabled = true;
+                    $('bpStatusLine').textContent = 'Starting…';
+                    var start = function () {
+                        return ApiClient.getScheduledTasks({ isHidden: false }).then(function (tasks) {
+                            var t = tasks.filter(function (x) { return x.Key === 'BetterPostersQualityFixUpdate'; })[0];
+                            if (!t) throw new Error('task not found');
+                            return ApiClient.startScheduledTask(t.Id);
                         });
-                    });
-
-                    e.preventDefault();
-                    return false;
-                });
-
-            // run the "Update Better Posters" task (all = replace every poster on this run)
-            function betterPostersRun(all) {
-                var status = betterPostersElement('bpStatus');
-                var start = function () {
-                    return ApiClient.getScheduledTasks({ isHidden: false }).then(function (tasks) {
-                        var t = tasks.filter(function (x) { return x.Key === 'BetterPostersQualityFixUpdate'; })[0];
-                        if (!t) throw new Error('task not found');
-                        return ApiClient.startScheduledTask(t.Id);
-                    });
-                };
-                var p = all
-                    ? ApiClient.getPluginConfiguration(BetterPostersConfig.pluginUniqueId).then(function (config) {
+                    };
+                    var p = (JSON.stringify(read()) !== saved ? save() : Promise.resolve()).then(function () {
+                        if (!all) return start();
                         config.ForceNextRun = true;
-                        return ApiClient.updatePluginConfiguration(BetterPostersConfig.pluginUniqueId, config);
-                    }).then(start)
-                    : start();
-                p.then(function () {
-                    status.textContent = 'Started. Progress is under Dashboard > Scheduled Tasks > "Update Better Posters (Local Quality Fix)".';
-                }, function (e) {
-                    status.textContent = 'Could not start it: ' + (e && e.message ? e.message : e);
+                        return ApiClient.updatePluginConfiguration(ID, config).then(start);
+                    });
+                    p.then(function () { setTimeout(check, 600); }, function (e) {
+                        $('bpStatusLine').textContent = 'Couldn’t start it';
+                        $('bpStatusSub').textContent = e && e.message ? e.message : String(e);
+                        $('bpRunNow').disabled = $('bpRunAll').disabled = false;
+                    });
+                }
+
+                // ── section nav: highlights where you are, jumps on click ──
+                var links = Array.prototype.slice.call(page.querySelectorAll('#bpNav a'));
+                links.forEach(function (a) {
+                    a.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        var t = $(a.getAttribute('data-to'));
+                        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
                 });
-            }
-            betterPostersElement('bpRunNow').addEventListener('click', function () { betterPostersRun(false); });
-            betterPostersElement('bpRunAll').addEventListener('click', function () { betterPostersRun(true); });
+                function spy() {
+                    var best = links[0];
+                    links.forEach(function (a) { var t = $(a.getAttribute('data-to')); if (t && t.getBoundingClientRect().top < 140) best = a; });
+                    links.forEach(function (a) { a.classList.toggle('on', a === best); });
+                }
+                window.addEventListener('scroll', spy, { passive: true });
+                document.addEventListener('scroll', spy, { passive: true, capture: true });
+
+                form.addEventListener('change', function (e) {
+                    if (e.target.name === 'Style') style();
+                    if (e.target.type === 'radio') setRadio(e.target.name, e.target.value);
+                    dirty();
+                });
+                form.addEventListener('input', function (e) {
+                    if (e.target.id === 'StudioFade') $('StudioFadeValue').textContent = e.target.value;
+                    dirty();
+                });
+                form.addEventListener('submit', function (e) { e.preventDefault(); Dashboard.showLoadingMsg(); save().then(Dashboard.hideLoadingMsg, Dashboard.hideLoadingMsg); return false; });
+                $('bpDiscard').addEventListener('click', function () { fill(config); dirty(); });
+                $('bpRunNow').addEventListener('click', function () { run(false); });
+                $('bpRunAll').addEventListener('click', function () { run(true); });
+                page.addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    load().then(Dashboard.hideLoadingMsg, Dashboard.hideLoadingMsg);
+                    check();
+                    spy();
+                });
+                page.addEventListener('pagehide', function () { clearTimeout(poll); });
+            })();
         </script>
     </div>
 </body>

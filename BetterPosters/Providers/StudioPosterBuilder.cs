@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using BetterPosters.Configuration;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Logging;
@@ -32,7 +33,8 @@ namespace BetterPosters.Providers;
 /// <param name="Genre">First genre, or null.</param>
 /// <param name="AgeRating">Age rating (PG-13, TV-MA...), or null.</param>
 /// <param name="Tag">The coloured tag at the top (studio / network / genre), or null.</param>
-public sealed record StudioInfo(string Title, float? Rating, int? Year, string? Genre, string? AgeRating, string? Tag = null);
+/// <param name="Lead">Shown first in the info line ("Season 2", "4 films"), or null.</param>
+public sealed record StudioInfo(string Title, float? Rating, int? Year, string? Genre, string? AgeRating, string? Tag = null, string? Lead = null);
 
 /// <summary>
 /// Studio posters: the title's clean artwork (no text on it) from TMDb, its logo placed at the bottom over a soft
@@ -50,17 +52,17 @@ public sealed class StudioPosterBuilder
     private const string Api = "https://api.themoviedb.org/3/";
     private const string Images = "https://image.tmdb.org/t/p/";
 
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly TmdbClient _tmdb;
     private readonly ILogger<StudioPosterBuilder> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StudioPosterBuilder"/> class.
     /// </summary>
-    /// <param name="httpClientFactory">The HTTP client factory.</param>
+    /// <param name="tmdb">TMDb (cached).</param>
     /// <param name="logger">The logger.</param>
-    public StudioPosterBuilder(IHttpClientFactory httpClientFactory, ILogger<StudioPosterBuilder> logger)
+    public StudioPosterBuilder(TmdbClient tmdb, ILogger<StudioPosterBuilder> logger)
     {
-        _httpClientFactory = httpClientFactory;
+        _tmdb = tmdb;
         _logger = logger;
     }
 
@@ -83,22 +85,59 @@ public sealed class StudioPosterBuilder
             return null;
         }
 
-        var kind = item is Series ? "tv" : "movie";
-        var tmdbId = item.GetProviderId(MetadataProvider.Tmdb);
-        if (string.IsNullOrWhiteSpace(tmdbId))
-        {
-            tmdbId = await FindByImdbAsync(item.GetProviderId(MetadataProvider.Imdb), kind, key, cancellationToken).ConfigureAwait(false);
-        }
-
-        if (string.IsNullOrWhiteSpace(tmdbId))
-        {
-            return null;
-        }
-
         var lang = BetterPosterUrlBuilder.GetLanguageCode(config.Language)?.Split('-')[0] ?? "en";
-        using var doc = await GetJsonAsync(
-            $"{Api}{kind}/{Uri.EscapeDataString(tmdbId)}/images?api_key={Uri.EscapeDataString(key)}&include_image_language={lang},en,null",
-            cancellationToken).ConfigureAwait(false);
+        var langs = $"include_image_language={lang},en,null";
+        var k = Uri.EscapeDataString(key);
+        var info = InfoFor(item, config);
+
+        // which TMDb lists hold the artwork (and the logos)
+        string? artList;
+        string? logoList;
+        switch (item)
+        {
+            case Season season:
+            {
+                var show = season.Series;
+                var showId = show is null ? null : await TmdbIdAsync(show, "tv", key, cancellationToken).ConfigureAwait(false);
+                if (showId is null || season.IndexNumber is not { } n)
+                {
+                    return null;
+                }
+
+                artList = $"{Api}tv/{showId}/season/{n}/images?api_key={k}&{langs}";
+                logoList = $"{Api}tv/{showId}/images?api_key={k}&{langs}";
+                break;
+            }
+
+            case BoxSet set:
+            {
+                var id = set.GetProviderId(MetadataProvider.TmdbCollection) ?? set.GetProviderId(MetadataProvider.Tmdb);
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    return null;
+                }
+
+                artList = $"{Api}collection/{Uri.EscapeDataString(id)}/images?api_key={k}&{langs}";
+                logoList = null;   // TMDb has no logos for collections: the name is written in text
+                break;
+            }
+
+            default:
+            {
+                var kind = item is Series ? "tv" : "movie";
+                var id = await TmdbIdAsync(item, kind, key, cancellationToken).ConfigureAwait(false);
+                if (id is null)
+                {
+                    return null;
+                }
+
+                artList = $"{Api}{kind}/{id}/images?api_key={k}&{langs}";
+                logoList = artList;
+                break;
+            }
+        }
+
+        using var doc = await _tmdb.GetJsonAsync(artList, cancellationToken).ConfigureAwait(false);
         if (doc is null)
         {
             return null;
@@ -106,31 +145,51 @@ public sealed class StudioPosterBuilder
 
         // clean artwork: posters with no language are the ones without the title printed on them
         var art = Pick(doc.RootElement, "posters", p => Lang(p) is null);
+        if (art is null && item is Season)
+        {
+            // a season with no clean artwork of its own: its show's clean artwork, with "Season 2" underneath
+            using var showDoc = logoList is null ? null : await _tmdb.GetJsonAsync(logoList, cancellationToken).ConfigureAwait(false);
+            art = showDoc is null ? null : Pick(showDoc.RootElement, "posters", p => Lang(p) is null);
+        }
+
         if (art is null)
         {
             // no clean artwork: the full-size official poster (its title is printed on it, so nothing is added but
             // the quality badges) - much sharper than btttr.cc's 500 px fallback
             var printed = Pick(doc.RootElement, "posters", p => Lang(p) == lang) ?? Pick(doc.RootElement, "posters", p => Lang(p) == "en");
-            var printedBytes = printed is null ? null : await GetBytesAsync($"{Images}original{printed}", cancellationToken).ConfigureAwait(false);
-            return printedBytes is null ? null : Compose(printedBytes, null, InfoFor(item, config), quality, config, printed: true);
+            var printedBytes = printed is null ? null : await _tmdb.GetImageAsync($"{Images}original{printed}", cancellationToken).ConfigureAwait(false);
+            return printedBytes is null ? null : Compose(printedBytes, null, info, quality, config, printed: true);
         }
 
         string? logoPath = null;
-        if (config.StudioLogo)
+        if (config.StudioLogo && logoList is not null)
         {
-            logoPath = Pick(doc.RootElement, "logos", p => Lang(p) == lang && IsPng(p))
-                ?? Pick(doc.RootElement, "logos", p => Lang(p) == "en" && IsPng(p))
-                ?? Pick(doc.RootElement, "logos", p => Lang(p) is null && IsPng(p));
+            using var logos = logoList == artList ? null : await _tmdb.GetJsonAsync(logoList, cancellationToken).ConfigureAwait(false);
+            var root = (logos ?? doc).RootElement;
+            logoPath = Pick(root, "logos", p => Lang(p) == lang && IsPng(p))
+                ?? Pick(root, "logos", p => Lang(p) == "en" && IsPng(p))
+                ?? Pick(root, "logos", p => Lang(p) is null && IsPng(p));
         }
 
-        var artBytes = await GetBytesAsync($"{Images}original{art}", cancellationToken).ConfigureAwait(false);
+        var artBytes = await _tmdb.GetImageAsync($"{Images}original{art}", cancellationToken).ConfigureAwait(false);
         if (artBytes is null)
         {
             return null;
         }
 
-        byte[]? logoBytes = logoPath is null ? null : await GetBytesAsync($"{Images}original{logoPath}", cancellationToken).ConfigureAwait(false);
-        return Compose(artBytes, logoBytes, InfoFor(item, config), quality, config);
+        byte[]? logoBytes = logoPath is null ? null : await _tmdb.GetImageAsync($"{Images}original{logoPath}", cancellationToken).ConfigureAwait(false);
+        return Compose(artBytes, logoBytes, info, quality, config);
+    }
+
+    private async Task<string?> TmdbIdAsync(BaseItem item, string kind, string key, CancellationToken cancellationToken)
+    {
+        var id = item.GetProviderId(MetadataProvider.Tmdb);
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            id = await FindByImdbAsync(item.GetProviderId(MetadataProvider.Imdb), kind, key, cancellationToken).ConfigureAwait(false);
+        }
+
+        return string.IsNullOrWhiteSpace(id) ? null : Uri.EscapeDataString(id);
     }
 
     /// <summary>
@@ -143,12 +202,39 @@ public sealed class StudioPosterBuilder
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(config);
+        // seasons take their show's studio, genre and age rating; their own name ("Season 2") leads the info line
+        var source = item is Season { Series: { } show } ? show : item;
         var tag = config.StudioTopTag switch
         {
-            StudioTag.Studio => item.Studios?.FirstOrDefault(),
-            StudioTag.Genre => item.Genres?.FirstOrDefault(),
+            StudioTag.Studio => source.Studios?.FirstOrDefault(),
+            StudioTag.Genre => source.Genres?.FirstOrDefault(),
             _ => null
         };
+        if (item is Season season)
+        {
+            return new StudioInfo(
+                source.Name ?? string.Empty,
+                null,
+                config.StudioShowYear ? season.ProductionYear : null,
+                config.EnableGenre && config.StudioTopTag != StudioTag.Genre ? source.Genres?.FirstOrDefault() : null,
+                config.EnableAgeRating && !string.IsNullOrWhiteSpace(source.OfficialRating) ? source.OfficialRating : null,
+                string.IsNullOrWhiteSpace(tag) ? null : tag.Trim(),
+                season.Name);
+        }
+
+        if (item is BoxSet set)
+        {
+            var films = set.GetLinkedChildren().Count(c => c is MediaBrowser.Controller.Entities.Movies.Movie);
+            return new StudioInfo(
+                set.Name ?? string.Empty,
+                null,
+                null,
+                null,
+                null,
+                null,
+                films > 0 ? films.ToString(CultureInfo.InvariantCulture) + (films == 1 ? " film" : " films") : null);
+        }
+
         return new StudioInfo(
             item.Name ?? string.Empty,
             config.EnableRating && item.CommunityRating is > 0 ? item.CommunityRating : null,
@@ -258,6 +344,11 @@ public sealed class StudioPosterBuilder
     private static List<(bool Star, string Text)> MetaParts(StudioInfo info)
     {
         var parts = new List<(bool, string)>();
+        if (!string.IsNullOrWhiteSpace(info.Lead) && Drawable(info.Lead))
+        {
+            parts.Add((false, info.Lead));
+        }
+
         if (info.Rating is { } r)
         {
             parts.Add((true, r.ToString("0.0", CultureInfo.InvariantCulture)));
@@ -540,7 +631,7 @@ public sealed class StudioPosterBuilder
             return null;
         }
 
-        using var doc = await GetJsonAsync($"{Api}find/{Uri.EscapeDataString(imdbId)}?external_source=imdb_id&api_key={Uri.EscapeDataString(key)}", cancellationToken).ConfigureAwait(false);
+        using var doc = await _tmdb.GetJsonAsync($"{Api}find/{Uri.EscapeDataString(imdbId)}?external_source=imdb_id&api_key={Uri.EscapeDataString(key)}", cancellationToken).ConfigureAwait(false);
         if (doc is null || !doc.RootElement.TryGetProperty(kind == "tv" ? "tv_results" : "movie_results", out var results))
         {
             return null;
@@ -555,45 +646,6 @@ public sealed class StudioPosterBuilder
         }
 
         return null;
-    }
-
-    private async Task<JsonDocument?> GetJsonAsync(string url, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var client = _httpClientFactory.CreateClient(NamedClient.Default);
-            using var response = await client.GetAsync(new Uri(url), cancellationToken).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
-            {
-                return null;
-            }
-
-            var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            await using (stream.ConfigureAwait(false))
-            {
-                return await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-            }
-        }
-        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
-        {
-            _logger.LogDebug(ex, "TMDb request failed");
-            return null;
-        }
-    }
-
-    private async Task<byte[]?> GetBytesAsync(string url, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var client = _httpClientFactory.CreateClient(NamedClient.Default);
-            using var response = await client.GetAsync(new Uri(url), cancellationToken).ConfigureAwait(false);
-            return response.IsSuccessStatusCode ? await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false) : null;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
-        {
-            _logger.LogDebug(ex, "TMDb image download failed");
-            return null;
-        }
     }
 
     // the plugin's own key, else the one Jellyfin's built-in TMDb plugin uses (its settings, or its built-in key)

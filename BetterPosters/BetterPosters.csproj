@@ -65,6 +65,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- the settings page's live progress (a small API endpoint) -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="BetterPosters.Tests" />
   </ItemGroup>
 </Project>

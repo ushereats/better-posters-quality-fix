@@ -108,7 +108,14 @@ public sealed class PosterService : IDisposable
     /// </summary>
     /// <param name="item">The title.</param>
     /// <returns>True for movies and shows.</returns>
-    public static bool Handles(BaseItem? item) => item is Movie or Series;
+    public static bool Handles(BaseItem? item) => item is Movie or Series or Season or BoxSet;
+
+    /// <summary>
+    /// Whether a title can only get a studio poster (btttr.cc has none for seasons and collections).
+    /// </summary>
+    /// <param name="item">The title.</param>
+    /// <returns>True for seasons and collections.</returns>
+    public static bool StudioOnly(BaseItem item) => item is Season or BoxSet;
 
     /// <summary>
     /// Reads a title's real quality: a movie's own file, or for a show the best of its newest episodes.
@@ -118,11 +125,23 @@ public sealed class PosterService : IDisposable
     public QualityInfo? ResolveQuality(BaseItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
-        if (item is Series series)
+        if (item is BoxSet set)
+        {
+            // a collection: the best of its films
+            QualityInfo? bestFilm = null;
+            foreach (var film in set.GetLinkedChildren().OfType<Movie>().Take(40))
+            {
+                bestFilm = QualityInfo.Best(bestFilm, QualityInfo.FromStreams(_mediaSourceManager.GetMediaStreams(new MediaStreamQuery { ItemId = film.Id })));
+            }
+
+            return bestFilm;
+        }
+
+        if (item is Series or Season)
         {
             var episodes = _libraryManager.GetItemList(new InternalItemsQuery
             {
-                Parent = series,
+                Parent = item,
                 IncludeItemTypes = [BaseItemKind.Episode],
                 Recursive = true,
                 IsVirtualItem = false
@@ -213,7 +232,7 @@ public sealed class PosterService : IDisposable
     /// <param name="quality">The quality to draw, or null.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The status code and the finished image bytes (null when not found).</returns>
-    public async Task<(HttpStatusCode Status, byte[]? Bytes)> MakeAsync(BaseItem item, string btttrUrl, QualityInfo? quality, CancellationToken cancellationToken)
+    public async Task<(HttpStatusCode Status, byte[]? Bytes)> MakeAsync(BaseItem item, string? btttrUrl, QualityInfo? quality, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(item);
         var config = Config;
@@ -233,12 +252,17 @@ public sealed class PosterService : IDisposable
             }
         }
 
+        if (string.IsNullOrEmpty(btttrUrl))
+        {
+            return (HttpStatusCode.NotFound, null);   // seasons / collections: no btttr.cc poster to fall back to
+        }
+
         return await DownloadAsync(btttrUrl, quality, cancellationToken).ConfigureAwait(false);
     }
 
     // everything in the settings that changes how a studio poster looks
     private static string StyleKey(PluginConfiguration c) => c.Style == PosterStyle.Studio
-        ? string.Join(',', "studio4", c.StudioTopTag, c.StudioLogo, c.StudioFade, c.StudioShowYear, c.EnableGenre, c.EnableRating, c.EnableAgeRating, c.Language)
+        ? string.Join(',', "studio5", c.StudioTopTag, c.StudioLogo, c.StudioFade, c.StudioShowYear, c.EnableGenre, c.EnableRating, c.EnableAgeRating, c.Language)
         : "btttr";
 
     /// <summary>
@@ -256,15 +280,16 @@ public sealed class PosterService : IDisposable
             return PosterResult.Skipped;
         }
 
+        var config = Config;
         var imdbId = item.GetProviderId(MetadataProvider.Imdb);
-        if (string.IsNullOrWhiteSpace(imdbId) || !IsEnabledFor(item))
+        var studioOnly = StudioOnly(item);
+        if ((studioOnly ? config.Style != PosterStyle.Studio : string.IsNullOrWhiteSpace(imdbId)) || !IsEnabledFor(item))
         {
             return PosterResult.Skipped;
         }
 
         EnsureLoaded();
-        var config = Config;
-        var url = BetterPosterUrlBuilder.Build(imdbId, config);
+        var url = studioOnly ? string.Empty : BetterPosterUrlBuilder.Build(imdbId!, config);
         var quality = config.EnableQualityTags ? ResolveQuality(item) : null;
         var signature = string.Join('|', StateVersion, StyleKey(config), url, config.EnableQualityTags ? quality?.Key ?? "none" : "off");
 

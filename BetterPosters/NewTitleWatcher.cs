@@ -79,9 +79,15 @@ public sealed class NewTitleWatcher : IHostedService, IDisposable
     private void OnChanged(object? sender, ItemChangeEventArgs e)
     {
         var item = e.Item;
-        // a new or changed episode can change its show's quality (e.g. the show now has 4K episodes)
+        // a new or changed episode can change its show's and its season's quality (e.g. now has 4K episodes)
         if (item is Episode episode && e.UpdateReason != ItemUpdateType.ImageUpdate)
         {
+            if (episode.Season is { } season && PosterService.Handles(season) && Plugin.Instance?.Configuration.AutoApplyNewTitles != false
+                && _queued.TryAdd(season.Id, 0))
+            {
+                _signal.Release();
+            }
+
             item = episode.Series;
         }
 

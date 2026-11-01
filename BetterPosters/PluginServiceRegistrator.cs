@@ -16,6 +16,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
     /// <inheritdoc />
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
+        serviceCollection.AddSingleton<TmdbClient>();
         serviceCollection.AddSingleton<StudioPosterBuilder>();
         serviceCollection.AddSingleton<PosterService>();
         serviceCollection.AddSingleton<IRemoteImageProvider, BetterPostersImageProvider>();
