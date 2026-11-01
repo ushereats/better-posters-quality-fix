@@ -23,6 +23,7 @@ A fork of [Better Posters](https://github.com/neurekadev/better-posters). The or
 
 ## Features
 
+- **Studio Posters:** Each title's clean artwork (no text on it) from TMDb with its logo over a soft fade, an info line (rating, year, genre) and the quality badges. Or keep btttr.cc's ready-made posters: one setting.
 - **Real Quality Badges:** **4K**, **1440p**, **1080p**, **720p** and **SD**, read from the video file Jellyfin scanned.
 - **HDR Detection:** **HDR**, **HDR10+** and **HLG**.
 - **Dolby:** Dolby logo with **ATMOS** and/or **VISION** underneath for Dolby Atmos and Dolby Vision, and **DIGITAL** for Dolby Digital / Digital Plus / TrueHD.

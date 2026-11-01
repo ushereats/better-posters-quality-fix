@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Studio posters** (the new default style): each title's clean artwork from TMDb (no text printed on it), its logo placed at the bottom over a soft fade, an info line underneath (rating, year, genre, age rating) and your real quality badges at the top. Titles TMDb has no clean artwork for get the btttr.cc poster as before. Switch back to btttr.cc's posters under Poster Style.
+- Settings for the studio style: title logo on/off (off = the title in text), how dark the fade is, year on/off, and an optional TMDb key (empty = the one Jellyfin's TMDb plugin uses). Genre, Ratings, Age Rating and Language apply to both styles.
+
+### Changed
+- The 4K / 1440p / 1080p / 720p chip now matches btttr.cc's own quality badge: its size, padding and corners, and near-black letters cut out of the chip.
+
+## [1.1.15] - 2026-11-01
+
 ### Fixed
 - Installing from the plugin repository works: the old manifest pointed at a release that no longer existed, and a second, broken release workflow ran on every tag. One workflow now builds, tests on a real Jellyfin 12, releases and writes the manifest (with the right checksum) automatically.
 - The settings page saved to the *original* Better Posters plugin's settings instead of this one's, so "Quality badges" never turned on. It now saves to this plugin.
