@@ -313,7 +313,8 @@ public static class QualityBadgeRenderer
         public abstract void Draw(IImageProcessingContext ctx, float x, float centerY);
     }
 
-    // resolution chip in btttr.cc's (Better Posters') look: small light chip, grey bold text
+    // resolution chip measured from btttr.cc's own quality badge (500 px poster: 40 px tall chip, ~21 px
+    // capitals, ~12 px side padding, ~8 px corners, near-black bold text on light grey), at the 185 px design size
     private sealed class ChipPart : Part
     {
         private readonly string _text;
@@ -325,16 +326,16 @@ public static class QualityBadgeRenderer
         {
             _text = text;
             _s = s;
-            _font = Font(800, 11.5f * s);
+            _font = Font(800, 11f * s);
             _textWidth = Advance(text, _font, 0);
-            Width = Math.Max(17 * s, _textWidth + (9 * s));
+            Width = Math.Max(15 * s, _textWidth + (9 * s));
         }
 
         public override void Draw(IImageProcessingContext ctx, float x, float centerY)
         {
-            var h = 17 * _s;
-            ctx.Fill(Color.FromRgba(232, 232, 230, 240), RoundedRect(x, centerY - (h / 2f), Width, h, 3.5f * _s));
-            DrawText(ctx, _text, _font, 0, x + ((Width - _textWidth) / 2f), centerY + (0.4f * _s), Color.FromRgb(92, 92, 92));
+            var h = 14.8f * _s;
+            ctx.Fill(Color.FromRgba(228, 229, 227, 238), RoundedRect(x, centerY - (h / 2f), Width, h, 3f * _s));
+            DrawText(ctx, _text, _font, 0, x + ((Width - _textWidth) / 2f), centerY + (0.35f * _s), Color.FromRgb(16, 16, 16));
         }
     }
 
