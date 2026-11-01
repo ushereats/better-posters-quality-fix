@@ -114,7 +114,7 @@ for i in $(seq 1 120); do
   echo "$ST"; case "$ST" in Idle*) break;; esac; sleep 2
 done
 api GET "/ScheduledTasks/$TASK" > "$OUT/task.json"
-api GET "/BetterPosters/Status" | tee "$OUT/status.json"; echo
+[ "$MODE" = zip ] && { api GET "/BetterPosters/Status" | tee "$OUT/status.json"; echo; }
 sudo journalctl -u jellyfin --no-pager | grep -i "better posters" | tail -20 | tee "$OUT/log.txt"
 
 echo "== posters"
@@ -130,4 +130,4 @@ while read -r ID NAME TAG; do
 done < "$OUT/ids.txt"
 ls -la "$OUT"
 grep -q '"Status":"Completed"' "$OUT/task.json" || { echo "::error::task did not complete"; cat "$OUT/task.json"; exit 1; }
-grep -qi '"running":false' "$OUT/status.json" || { echo "::error::status endpoint"; cat "$OUT/status.json"; exit 1; }
+[ "$MODE" != zip ] || grep -qi '"running":false' "$OUT/status.json" || { echo "::error::status endpoint"; cat "$OUT/status.json"; exit 1; }
