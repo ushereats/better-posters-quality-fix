@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Season and collection posters** (studio style): each season gets its own TMDb artwork (or the show's) with the show's logo and "Season 2" in the info line; collections get their TMDb collection artwork with the name and the number of films. Quality badges come from the season's episodes / the collection's best film.
+- **Live progress** on the settings page: how far a run is, which title it's on, time left, and how many posters were made, already up to date, not found or failed.
+- **New settings page**: a status card with the Update / Replace buttons at the top, the style picked from cards, sections (Look, Badges, Updating, Advanced) you can jump between, only the options for the chosen style, and a save bar that shows up when something changed.
+
+### Changed
+- Artwork downloaded from TMDb is kept on the server, so rebuilding posters after a settings change downloads nothing again (unused files are cleared after 120 days, and the cache never grows past 4 GB).
+- TMDb's limits are respected: a few requests at a time, spaced out, and retried with growing waits when TMDb is busy or briefly down, so big libraries no longer end up with gaps.
+
 ### Changed
 - The 4K / 1440p / 1080p / 720p chip is now a copy of btttr.cc's: frosted light glass with the poster faintly behind it, the letters cut out of it (the poster shows through them, darkened), an Arial-style heavy bold (Arimo, built in), btttr.cc's size, corners and position.
 - Studio style: titles with no clean artwork on TMDb now get TMDb's full-size official poster (with just the badges added) instead of btttr.cc's 500 px one, so they're sharp too.
