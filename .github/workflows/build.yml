@@ -6,7 +6,7 @@ name: Build, test and release
 on:
   push:
     branches: [main, "dev/**"]
-    paths-ignore: ["manifest.json", "**.md"]
+    paths-ignore: ["manifest.json", "**.md", "ci/**", ".github/**"]
   workflow_dispatch:
 
 permissions:
