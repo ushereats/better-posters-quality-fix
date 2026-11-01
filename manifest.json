@@ -2,12 +2,20 @@
     {
         "guid": "066ff97a-0628-4d1d-b256-840f1e25f8df",
         "name": "Better Posters (Local Quality Fix)",
-        "description": "Fork of Better Posters that renders the quality badge locally from the item's real MediaStream data instead of btttr.cc's externally-sourced (often mismatched) badge.\n",
-        "overview": "Better Posters, with an accurate locally-rendered quality badge",
+        "description": "Better Posters from btttr.cc with quality badges read from your actual files (4K / 1080p, HDR, HDR10+, Dolby Vision, Dolby Atmos), drawn in the Ushereats theme's style. New titles get their poster straight away.\n",
+        "overview": "Better Posters with accurate quality badges from your own files",
         "owner": "ushereats",
         "category": "MoviesAndShows",
         "imageUrl": "https://raw.githubusercontent.com/ushereats/better-posters-quality-fix/main/Assets/Catalog.png",
         "versions": [
+            {
+                "version": "1.1.15.0",
+                "changelog": "\n### Fixed\n- Installing from the plugin repository works: the old manifest pointed at a release that no longer existed, and a second, broken release workflow ran on every tag. One workflow now builds, tests on a real Jellyfin 12, releases and writes the manifest (with the right checksum) automatically.\n- The settings page saved to the *original* Better Posters plugin's settings instead of this one's, so \"Quality badges\" never turned on. It now saves to this plugin.\n- \"Update Better Posters\" skipped every library unless \"Better Posters (Local Quality Fix)\" had been ticked as an image fetcher in each library, so posters were never replaced. It now covers every movie and show library (switchable).\n- The update task never drew the quality badges (it saved btttr.cc's plain poster). It now draws them.\n- Badges no longer depend on fonts being installed on the server (the font is built in).\n\n### Changed\n- New badge look matching the Ushereats theme: Dolby logo with ATMOS / VISION, HDR / HDR10+ / HLG, and a light 4K / 1440p / 1080p / 720p chip, centred at the top with a soft shadow. With trend tags on (\"Oscar Nominee\"...), the badges sit just under the tag instead of over it.\n- Dolby Atmos and Dolby Digital are detected from the audio tracks.\n- Shows use the best of their newest episodes.\n- New titles (and upgraded files) get their poster within a minute; the task runs nightly and only re-downloads titles that changed.\n- Settings: \"Update posters now\" and \"Replace every poster now\" buttons.",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://github.com/ushereats/better-posters-quality-fix/releases/download/1.1.15/better-posters-quality-fix_1.1.15.0.zip",
+                "checksum": "625f6b26cad51360e09c6c952b2cf67c",
+                "timestamp": "2026-11-01T06:16:18Z"
+            },
             {
                 "version": "1.0.1.0",
                 "changelog": "### Changed\n- Badge visuals: gradient background, drop shadow, and tier-colored accent dot (violet/blue/slate/gray).\n",
@@ -15,14 +23,6 @@
                 "sourceUrl": "https://github.com/ushereats/better-posters-quality-fix/releases/download/1.0.1/plugin.zip",
                 "checksum": "4c654e367dc51a390252f616adc47fec",
                 "timestamp": "2026-09-12T02:32:08Z"
-            },
-            {
-                "version": "1.0.0.0",
-                "changelog": "### Added\n- Quality badge is now rendered locally from the item's real MediaStream data (resolution + HDR/DV/HLG) instead of btttr.cc's own externally-sourced badge.\n",
-                "targetAbi": "12.0.0.0",
-                "sourceUrl": "https://github.com/ushereats/better-posters-quality-fix/releases/download/1.0.0/plugin.zip",
-                "checksum": "89cf44285788d3be210c4c0f527ece92",
-                "timestamp": "2026-09-12T02:18:46Z"
             }
         ]
     }
