@@ -108,7 +108,11 @@ public sealed class StudioPosterBuilder
         var art = Pick(doc.RootElement, "posters", p => Lang(p) is null);
         if (art is null)
         {
-            return null;
+            // no clean artwork: the full-size official poster (its title is printed on it, so nothing is added but
+            // the quality badges) - much sharper than btttr.cc's 500 px fallback
+            var printed = Pick(doc.RootElement, "posters", p => Lang(p) == lang) ?? Pick(doc.RootElement, "posters", p => Lang(p) == "en");
+            var printedBytes = printed is null ? null : await GetBytesAsync($"{Images}original{printed}", cancellationToken).ConfigureAwait(false);
+            return printedBytes is null ? null : Compose(printedBytes, null, InfoFor(item, config), quality, config, printed: true);
         }
 
         string? logoPath = null;
@@ -163,8 +167,9 @@ public sealed class StudioPosterBuilder
     /// <param name="info">The info line.</param>
     /// <param name="quality">The quality badges, or null.</param>
     /// <param name="config">The settings.</param>
+    /// <param name="printed">The artwork already has its title printed on it: only the badges are added.</param>
     /// <returns>The poster as a JPEG.</returns>
-    public static byte[] Compose(byte[] artBytes, byte[]? logoBytes, StudioInfo info, QualityInfo? quality, PluginConfiguration config)
+    public static byte[] Compose(byte[] artBytes, byte[]? logoBytes, StudioInfo info, QualityInfo? quality, PluginConfiguration config, bool printed = false)
     {
         ArgumentNullException.ThrowIfNull(artBytes);
         ArgumentNullException.ThrowIfNull(info);
@@ -172,8 +177,8 @@ public sealed class StudioPosterBuilder
         using var image = Image.Load<Rgba32>(artBytes);
         image.Mutate(x => x.Resize(new ResizeOptions { Size = new Size(Width, Height), Mode = ResizeMode.Crop, Position = AnchorPositionMode.Center, Sampler = KnownResamplers.Lanczos3 }));
 
-        var meta = MetaParts(info);
-        var fade = Math.Clamp(config.StudioFade, 0, 100) / 100f;
+        var meta = printed ? new List<(bool, string)>() : MetaParts(info);
+        var fade = printed ? 0 : Math.Clamp(config.StudioFade, 0, 100) / 100f;
 
         // soft dark fade at the bottom for the title and info line, and a light one at the top for the badges
         if (fade > 0)
@@ -195,15 +200,15 @@ public sealed class StudioPosterBuilder
                 new PointF(0, 0),
                 new PointF(0, Height * 0.14f),
                 GradientRepetitionMode.None,
-                new ColorStop(0f, Color.FromRgba(0, 0, 0, 90)),
+                new ColorStop(0f, Color.FromRgba(0, 0, 0, 60)),
                 new ColorStop(1f, Color.FromRgba(0, 0, 0, 0)));
             image.Mutate(x => x.Fill(topBrush, new RectangularPolygon(0, 0, Width, Height * 0.14f)));
         }
 
         // title: logo (or text) centred, its bottom just above the info line
         var titleBottom = Height * (meta.Count > 0 ? 0.878f : 0.93f);
-        var drewLogo = false;
-        if (logoBytes is not null)
+        var drewLogo = printed;
+        if (logoBytes is not null && !printed)
         {
             try
             {
@@ -234,7 +239,7 @@ public sealed class StudioPosterBuilder
         }
 
         var below = 0;
-        if (info.Tag is { } tag && Drawable(tag))
+        if (!printed && info.Tag is { } tag && Drawable(tag))
         {
             below = DrawTag(image, tag, Accent(image));
         }

@@ -64,7 +64,8 @@ public sealed class PosterService : IDisposable
     private readonly IBaseItemManager _baseItemManager;
     private readonly ILogger<PosterService> _logger;
     private readonly StudioPosterBuilder _studio;
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    // three titles at a time: posters are mostly downloading, so this is ~3x faster without loading the server
+    private readonly SemaphoreSlim _gate = new(3, 3);
     private readonly ConcurrentDictionary<Guid, string> _applied = new();
     private readonly object _saveLock = new();
     private Timer? _saveTimer;
@@ -237,7 +238,7 @@ public sealed class PosterService : IDisposable
 
     // everything in the settings that changes how a studio poster looks
     private static string StyleKey(PluginConfiguration c) => c.Style == PosterStyle.Studio
-        ? string.Join(',', "studio3", c.StudioTopTag, c.StudioLogo, c.StudioFade, c.StudioShowYear, c.EnableGenre, c.EnableRating, c.EnableAgeRating, c.Language)
+        ? string.Join(',', "studio4", c.StudioTopTag, c.StudioLogo, c.StudioFade, c.StudioShowYear, c.EnableGenre, c.EnableRating, c.EnableAgeRating, c.Language)
         : "btttr";
 
     /// <summary>

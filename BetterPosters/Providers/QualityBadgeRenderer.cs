@@ -73,7 +73,7 @@ public static class QualityBadgeRenderer
         ArgumentNullException.ThrowIfNull(quality);
 
         var s = image.Width / DesignWidth;
-        var parts = BuildParts(quality, s);
+        var parts = BuildParts(quality, s, image);
         if (parts.Count == 0)
         {
             return;
@@ -92,7 +92,7 @@ public static class QualityBadgeRenderer
         {
             var k = maxWidth / total;
             s *= k;
-            parts = BuildParts(quality, s);
+            parts = BuildParts(quality, s, image);
             gap = 9 * s;
             total = -gap;
             foreach (var p in parts)
@@ -102,7 +102,8 @@ public static class QualityBadgeRenderer
         }
 
         var rowHeight = 17 * s;
-        var top = below > 0 ? below + (7 * s) : 14 * s;
+        // no tag: the chip's top edge where btttr.cc puts it (37 px down on a 500 x 750 poster)
+        var top = below > 0 ? below + (7 * s) : 12.6f * s;
         var centerY = top + (rowHeight / 2f);
         var x = (image.Width - total) / 2f;
 
@@ -197,7 +198,7 @@ public static class QualityBadgeRenderer
         return bottom;
     }
 
-    private static List<Part> BuildParts(QualityInfo q, float s)
+    private static List<Part> BuildParts(QualityInfo q, float s, Image<Rgba32> poster)
     {
         var parts = new List<Part>();
         if (q.DolbyVision || q.DolbyAudio is not null)
@@ -213,11 +214,14 @@ public static class QualityBadgeRenderer
 
         if (q.Resolution is not null)
         {
-            parts.Add(new ChipPart(q.Resolution, s));
+            parts.Add(new ChipPart(q.Resolution, s, poster));
         }
 
         return parts;
     }
+
+    // btttr.cc's resolution chip uses an Arial-style bold: Arimo (same shapes and widths as Arial, free to ship)
+    internal static Font ChipFont(float size) => Fonts.Value[3].CreateFont(Math.Max(1f, size), FontStyle.Regular);
 
     internal static Font Font(int weight, float size)
     {
@@ -237,7 +241,9 @@ public static class QualityBadgeRenderer
             return collection.Add(stream);
         }
 
-        return [Load("500"), Load("700"), Load("800")];
+        using var arimo = asm.GetManifestResourceStream("BetterPosters.Fonts.Arimo-700.ttf")
+            ?? throw new InvalidOperationException("Embedded font missing: Arimo");
+        return [Load("500"), Load("700"), Load("800"), collection.Add(arimo)];
     }
 
     private static IPath RoundedRect(float x, float y, float w, float h, float r)
@@ -321,31 +327,81 @@ public static class QualityBadgeRenderer
         private readonly Font _font;
         private readonly float _s;
         private readonly float _textWidth;
+        private readonly Image<Rgba32> _poster;
 
-        public ChipPart(string text, float s)
+        public ChipPart(string text, float s, Image<Rgba32> poster)
         {
             _text = text;
             _s = s;
-            _font = Font(800, 11f * s);
+            _poster = poster;
+            _font = ChipFont(11.3f * s);
             _textWidth = Advance(text, _font, 0);
-            Width = Math.Max(15 * s, _textWidth + (9 * s));
+            Width = Math.Max(15 * s, _textWidth + (7.2f * s));
         }
 
+        // btttr.cc's chip: frosted light glass over the poster, the letters cut out of it (the poster shows
+        // through them, darkened), Arial-style bold, small round corners
         public override void Draw(IImageProcessingContext ctx, float x, float centerY)
         {
             var h = 14.8f * _s;
-            ctx.Fill(Color.FromRgba(228, 229, 227, 238), RoundedRect(x, centerY - (h / 2f), Width, h, 3f * _s));
-            // btttr.cc's text is cut out of the chip, the poster faintly showing through: punch the letters out,
-            // then fill them nearly black so they read on any artwork
-            var options = new RichTextOptions(_font)
+            var rect = new Rectangle((int)Math.Round(x), (int)Math.Round(centerY - (h / 2f)), (int)Math.Round(Width), (int)Math.Round(h));
+            rect.Intersect(new Rectangle(0, 0, _poster.Width, _poster.Height));
+            if (rect.Width < 2 || rect.Height < 2)
             {
-                Origin = new PointF(x + ((Width - _textWidth) / 2f), centerY + (0.35f * _s)),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            var cut = new DrawingOptions { GraphicsOptions = new GraphicsOptions { AlphaCompositionMode = PixelAlphaCompositionMode.DestOut } };
-            ctx.DrawText(cut, options, _text, Brushes.Solid(Color.Black), null);
-            ctx.DrawText(options, _text, Color.FromRgba(10, 10, 10, 205));
+                return;
+            }
+
+            using var under = _poster.Clone(c => c.Crop(rect));
+            using var glass = under.Clone(c => c.GaussianBlur(Math.Max(1f, 2.5f * _s)).Fill(Color.FromRgba(238, 238, 236, 222)));
+            using var letters = under.Clone(c => c.Fill(Color.FromRgba(0, 0, 0, 118)));
+            using var mask = new Image<Rgba32>(rect.Width, rect.Height);
+            mask.Mutate(c => c.DrawText(
+                new RichTextOptions(_font)
+                {
+                    Origin = new PointF((rect.Width - _textWidth) / 2f, (rect.Height / 2f) + (0.3f * _s)),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Center
+                },
+                _text,
+                Color.White));
+            using var shape = new Image<Rgba32>(rect.Width, rect.Height);
+            shape.Mutate(c => c.Fill(Color.White, RoundedRect(0, 0, rect.Width, rect.Height, 3f * _s)));
+
+            glass.ProcessPixelRows(letters, mask, (g, l, m) =>
+            {
+                for (var y = 0; y < g.Height; y++)
+                {
+                    var gr = g.GetRowSpan(y);
+                    var lr = l.GetRowSpan(y);
+                    var mr = m.GetRowSpan(y);
+                    for (var i = 0; i < gr.Length; i++)
+                    {
+                        var a = mr[i].A / 255f;
+                        if (a > 0)
+                        {
+                            gr[i] = new Rgba32(
+                                (byte)((gr[i].R * (1 - a)) + (lr[i].R * a)),
+                                (byte)((gr[i].G * (1 - a)) + (lr[i].G * a)),
+                                (byte)((gr[i].B * (1 - a)) + (lr[i].B * a)),
+                                255);
+                        }
+                    }
+                }
+            });
+            glass.ProcessPixelRows(shape, (g, m) =>
+            {
+                for (var y = 0; y < g.Height; y++)
+                {
+                    var gr = g.GetRowSpan(y);
+                    var mr = m.GetRowSpan(y);
+                    for (var i = 0; i < gr.Length; i++)
+                    {
+                        gr[i].A = mr[i].A;
+                    }
+                }
+            });
+
+            ctx.DrawImage(glass, new Point(rect.X, rect.Y), 1f);
         }
     }
 
