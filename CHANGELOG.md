@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- The 4K / 1440p / 1080p / 720p chip is now a copy of btttr.cc's: frosted light glass with the poster faintly behind it, the letters cut out of it (the poster shows through them, darkened), an Arial-style heavy bold (Arimo, built in), btttr.cc's size, corners and position.
+- Studio style: titles with no clean artwork on TMDb now get TMDb's full-size official poster (with just the badges added) instead of btttr.cc's 500 px one, so they're sharp too.
+- Updating is about 3x faster: three titles at a time.
+
+## [1.1.25] - 2026-11-01
+
+### Changed
 - Sharper posters: studio posters are made from TMDb's full-size artwork and logos at 1000 x 1500 (was 780 x 1170), with better resizing, and every poster is saved at higher JPEG quality with full colour detail.
 - The tag at the top of studio posters is off by default (setting "Tag at the top").
 
