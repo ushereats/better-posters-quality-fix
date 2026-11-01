@@ -156,4 +156,57 @@ public class QualityTests
             }
         }
     }
+
+    // Studio layout with a made-up logo on the real sample artwork ($BP_PREVIEW_IN), saved for a look
+    [Fact]
+    public void Studio_Composes()
+    {
+        var outDir = Environment.GetEnvironmentVariable("BP_PREVIEW_OUT") ?? Path.Combine(Path.GetTempPath(), "bp-preview");
+        Directory.CreateDirectory(outDir);
+        byte[] art;
+        var inDir = Environment.GetEnvironmentVariable("BP_PREVIEW_IN");
+        var sample = inDir is null ? null : Path.Combine(inDir, "tt0816692-bare.jpg");
+        if (sample is not null && File.Exists(sample))
+        {
+            art = File.ReadAllBytes(sample);
+        }
+        else
+        {
+            using var blank = new Image<Rgba32>(500, 750, new Rgba32(40, 60, 90));
+            using var ms = new MemoryStream();
+            blank.SaveAsJpeg(ms);
+            art = ms.ToArray();
+        }
+
+        // a fake logo: a white bar with transparent edges (trimmed and centred by the builder)
+        byte[] logo;
+        using (var l = new Image<Rgba32>(900, 300))
+        {
+            l.ProcessPixelRows(rows =>
+            {
+                for (var y = 80; y < 220; y++)
+                {
+                    var row = rows.GetRowSpan(y);
+                    for (var x = 100; x < 800; x++)
+                    {
+                        row[x] = new Rgba32(255, 255, 255, 255);
+                    }
+                }
+            });
+            using var ms = new MemoryStream();
+            l.SaveAsPng(ms);
+            logo = ms.ToArray();
+        }
+
+        var config = new BetterPosters.Configuration.PluginConfiguration { EnableAgeRating = true };
+        var info = new StudioInfo("Interstellar", 8.6f, 2014, "Adventure", "M");
+        var q = new QualityInfo("4K", null, true, "ATMOS");
+        var withLogo = StudioPosterBuilder.Compose(art, logo, info, q, config);
+        var withText = StudioPosterBuilder.Compose(art, null, info, new QualityInfo("1080p", null, false, null), config);
+        File.WriteAllBytes(Path.Combine(outDir, "studio-logo.jpg"), withLogo);
+        File.WriteAllBytes(Path.Combine(outDir, "studio-text.jpg"), withText);
+        using var check = Image.Load<Rgba32>(withLogo);
+        Assert.Equal(StudioPosterBuilder.Width, check.Width);
+        Assert.Equal(StudioPosterBuilder.Height, check.Height);
+    }
 }

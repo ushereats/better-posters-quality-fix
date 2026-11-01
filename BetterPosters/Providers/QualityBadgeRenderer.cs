@@ -102,7 +102,7 @@ public static class QualityBadgeRenderer
         }
 
         var rowHeight = 17 * s;
-        var top = below > 0 ? below + (7 * s) : 12 * s;
+        var top = below > 0 ? below + (7 * s) : 14 * s;
         var centerY = top + (rowHeight / 2f);
         var x = (image.Width - total) / 2f;
 
@@ -219,7 +219,7 @@ public static class QualityBadgeRenderer
         return parts;
     }
 
-    private static Font Font(int weight, float size)
+    internal static Font Font(int weight, float size)
     {
         var families = Fonts.Value;
         var family = weight >= 800 ? families[2] : weight >= 700 ? families[1] : families[0];
@@ -261,7 +261,7 @@ public static class QualityBadgeRenderer
     }
 
     // letter spacing (em): only the wide-spaced small capitals use it; tiny values are left to the font
-    private static float Advance(string text, Font font, float tracking)
+    internal static float Advance(string text, Font font, float tracking)
     {
         if (Math.Abs(tracking) < 0.05f)
         {
@@ -277,7 +277,7 @@ public static class QualityBadgeRenderer
         return w - (tracking * font.Size);
     }
 
-    private static void DrawText(IImageProcessingContext ctx, string text, Font font, float tracking, float x, float centerY, Color color)
+    internal static void DrawText(IImageProcessingContext ctx, string text, Font font, float tracking, float x, float centerY, Color color)
     {
         if (Math.Abs(tracking) < 0.05f)
         {
@@ -313,7 +313,7 @@ public static class QualityBadgeRenderer
         public abstract void Draw(IImageProcessingContext ctx, float x, float centerY);
     }
 
-    // light resolution chip: "4K", "1080p"...
+    // resolution chip in btttr.cc's (Better Posters') look: small light chip, grey bold text
     private sealed class ChipPart : Part
     {
         private readonly string _text;
@@ -325,16 +325,16 @@ public static class QualityBadgeRenderer
         {
             _text = text;
             _s = s;
-            _font = Font(800, 12 * s);
-            _textWidth = Advance(text, _font, -0.02f);
-            Width = Math.Max(15 * s, _textWidth + (10 * s));
+            _font = Font(800, 11.5f * s);
+            _textWidth = Advance(text, _font, 0);
+            Width = Math.Max(17 * s, _textWidth + (9 * s));
         }
 
         public override void Draw(IImageProcessingContext ctx, float x, float centerY)
         {
             var h = 17 * _s;
-            ctx.Fill(Color.FromRgba(242, 242, 242, 240), RoundedRect(x, centerY - (h / 2f), Width, h, 4 * _s));
-            DrawText(ctx, _text, _font, -0.02f, x + ((Width - _textWidth) / 2f), centerY + (0.5f * _s), Color.FromRgb(20, 20, 20));
+            ctx.Fill(Color.FromRgba(232, 232, 230, 240), RoundedRect(x, centerY - (h / 2f), Width, h, 3.5f * _s));
+            DrawText(ctx, _text, _font, 0, x + ((Width - _textWidth) / 2f), centerY + (0.4f * _s), Color.FromRgb(92, 92, 92));
         }
     }
 

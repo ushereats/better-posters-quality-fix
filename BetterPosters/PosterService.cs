@@ -55,7 +55,7 @@ public sealed class PosterService : IDisposable
     /// <summary>The name the original Better Posters plugin uses for its image fetcher.</summary>
     public const string OriginalFetcherName = "Better Posters";
 
-    private const string StateVersion = "2";
+    private const string StateVersion = "3";
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILibraryManager _libraryManager;
@@ -63,6 +63,7 @@ public sealed class PosterService : IDisposable
     private readonly IProviderManager _providerManager;
     private readonly IBaseItemManager _baseItemManager;
     private readonly ILogger<PosterService> _logger;
+    private readonly StudioPosterBuilder _studio;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly ConcurrentDictionary<Guid, string> _applied = new();
     private readonly object _saveLock = new();
@@ -77,6 +78,7 @@ public sealed class PosterService : IDisposable
     /// <param name="mediaSourceManager">The media source manager.</param>
     /// <param name="providerManager">The provider manager.</param>
     /// <param name="baseItemManager">The base item manager.</param>
+    /// <param name="studio">The studio poster builder.</param>
     /// <param name="logger">The logger.</param>
     public PosterService(
         IHttpClientFactory httpClientFactory,
@@ -84,8 +86,10 @@ public sealed class PosterService : IDisposable
         IMediaSourceManager mediaSourceManager,
         IProviderManager providerManager,
         IBaseItemManager baseItemManager,
+        StudioPosterBuilder studio,
         ILogger<PosterService> logger)
     {
+        _studio = studio;
         _httpClientFactory = httpClientFactory;
         _libraryManager = libraryManager;
         _mediaSourceManager = mediaSourceManager;
@@ -200,6 +204,43 @@ public sealed class PosterService : IDisposable
     }
 
     /// <summary>
+    /// Makes a title's poster in the chosen style: a studio poster, or btttr.cc's when that's chosen or the
+    /// title has no clean artwork on TMDb.
+    /// </summary>
+    /// <param name="item">The title.</param>
+    /// <param name="btttrUrl">Its btttr.cc poster link (the fallback).</param>
+    /// <param name="quality">The quality to draw, or null.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The status code and the finished image bytes (null when not found).</returns>
+    public async Task<(HttpStatusCode Status, byte[]? Bytes)> MakeAsync(BaseItem item, string btttrUrl, QualityInfo? quality, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        var config = Config;
+        if (config.Style == PosterStyle.Studio)
+        {
+            try
+            {
+                var studio = await _studio.BuildAsync(item, config.EnableQualityTags ? quality : null, config, cancellationToken).ConfigureAwait(false);
+                if (studio is not null)
+                {
+                    return (HttpStatusCode.OK, studio);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Couldn't make the studio poster for {Name}; using btttr.cc's", item.Name);
+            }
+        }
+
+        return await DownloadAsync(btttrUrl, quality, cancellationToken).ConfigureAwait(false);
+    }
+
+    // everything in the settings that changes how a studio poster looks
+    private static string StyleKey(PluginConfiguration c) => c.Style == PosterStyle.Studio
+        ? string.Join(',', "studio", c.StudioLogo, c.StudioFade, c.StudioShowYear, c.EnableGenre, c.EnableRating, c.EnableAgeRating, c.Language)
+        : "btttr";
+
+    /// <summary>
     /// Puts the poster on one title, unless it already has this exact poster.
     /// </summary>
     /// <param name="item">The title.</param>
@@ -224,7 +265,7 @@ public sealed class PosterService : IDisposable
         var config = Config;
         var url = BetterPosterUrlBuilder.Build(imdbId, config);
         var quality = config.EnableQualityTags ? ResolveQuality(item) : null;
-        var signature = string.Join('|', StateVersion, url, config.EnableQualityTags ? quality?.Key ?? "none" : "off");
+        var signature = string.Join('|', StateVersion, StyleKey(config), url, config.EnableQualityTags ? quality?.Key ?? "none" : "off");
 
         if (!force && _applied.TryGetValue(item.Id, out var had) && had == signature && item.HasImage(ImageType.Primary, 0))
         {
@@ -234,7 +275,7 @@ public sealed class PosterService : IDisposable
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var (status, bytes) = await DownloadAsync(url, quality, cancellationToken).ConfigureAwait(false);
+            var (status, bytes) = await MakeAsync(item, url, quality, cancellationToken).ConfigureAwait(false);
             if (bytes is null)
             {
                 if (status == HttpStatusCode.NotFound)

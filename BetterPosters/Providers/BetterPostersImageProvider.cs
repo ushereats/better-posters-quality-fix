@@ -134,7 +134,7 @@ public class BetterPostersImageProvider : IRemoteImageProvider, IHasOrder
             _logger.LogWarning(ex, "Couldn't read the quality of {Name}", item.Name);
         }
 
-        var (status, bytes) = await _posters.DownloadAsync(cleanUrl, quality, cancellationToken).ConfigureAwait(false);
+        var (status, bytes) = await _posters.MakeAsync(item, cleanUrl, quality, cancellationToken).ConfigureAwait(false);
         var response = new HttpResponseMessage(status);
         if (bytes is not null)
         {

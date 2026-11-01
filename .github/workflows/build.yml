@@ -32,7 +32,12 @@ jobs:
             curl -fsSL "https://btttr.cc/poster/imdb/poster-default/$id.jpg?tag=none" -o "previews/in/$id-plain.jpg" || true
             curl -fsSL "https://btttr.cc/poster-n/imdb/poster-default/$id.jpg?tag=none" -o "previews/in/$id-bare.jpg" || true
           done
-          ls -la previews/in
+          # btttr.cc's own quality badge, to compare the resolution chip with
+          mkdir -p previews/ref
+          for id in tt0111161 tt14583706 tt0903747; do
+            curl -fsSL "https://btttr.cc/poster-q/imdb/poster-default/$id.jpg" -o "previews/ref/$id-btttr-q.jpg" || true
+          done
+          ls -la previews/in previews/ref
       - name: Tests (+ badge previews)
         env:
           BP_PREVIEW_IN: ${{ github.workspace }}/previews/in

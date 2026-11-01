@@ -145,6 +145,22 @@ public enum PosterLanguage
 }
 
 /// <summary>
+/// How posters are made.
+/// </summary>
+public enum PosterStyle
+{
+    /// <summary>
+    /// Built here: clean artwork (no text) with the title's logo, a soft fade and the info line (TMDb artwork).
+    /// </summary>
+    Studio,
+
+    /// <summary>
+    /// btttr.cc's ready-made Better Posters.
+    /// </summary>
+    BetterPosters
+}
+
+/// <summary>
 /// Plugin configuration.
 /// </summary>
 public class PluginConfiguration : BasePluginConfiguration
@@ -163,7 +179,37 @@ public class PluginConfiguration : BasePluginConfiguration
         RatingSource = PosterRatingSource.Average;
         EnableAgeRating = false;
         Language = PosterLanguage.English;
+        Style = PosterStyle.Studio;
+        StudioLogo = true;
+        StudioFade = 70;
+        StudioShowYear = true;
+        TmdbApiKey = string.Empty;
     }
+
+    /// <summary>
+    /// Gets or sets how posters are made (Studio: built here from TMDb artwork; BetterPosters: btttr.cc's).
+    /// </summary>
+    public PosterStyle Style { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether studio posters show the title's logo (off: the title in text).
+    /// </summary>
+    public bool StudioLogo { get; set; }
+
+    /// <summary>
+    /// Gets or sets how dark the fade at the bottom of studio posters is (0-100).
+    /// </summary>
+    public int StudioFade { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether studio posters show the year in the info line.
+    /// </summary>
+    public bool StudioShowYear { get; set; }
+
+    /// <summary>
+    /// Gets or sets an optional TMDb API key for studio posters (empty: the one Jellyfin's TMDb plugin uses).
+    /// </summary>
+    public string TmdbApiKey { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether trend tags are enabled.

@@ -9,13 +9,48 @@
         <div data-role="content">
             <div class="content-primary">
                 <form id="BetterPostersConfigForm">
+                    <h2>Poster Style</h2>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="Style">Style</label>
+                        <select is="emby-select" id="Style" name="Style" class="emby-select-withcolor emby-select">
+                            <option value="Studio">Studio: clean artwork with the title's logo (made here from TMDb)</option>
+                            <option value="BetterPosters">Better Posters: btttr.cc's ready-made posters</option>
+                        </select>
+                        <div class="fieldDescription">Studio posters use each title's clean artwork (no text printed on it) with its logo placed over a soft fade at the bottom, and an info line underneath. Titles with no clean artwork on TMDb get the Better Posters one instead.</div>
+                    </div>
+                    <div class="bpStudioOnly">
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="StudioLogo" name="StudioLogo" type="checkbox" is="emby-checkbox" />
+                                <span>Title logo</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">The title's logo at the bottom. Off (or no logo on TMDb): the title in text.</div>
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="StudioFade">Fade at the bottom (0-100)</label>
+                            <input id="StudioFade" name="StudioFade" type="number" is="emby-input" min="0" max="100" step="5" />
+                            <div class="fieldDescription">How dark the fade under the title is. 0 = none, 70 = normal, 100 = black at the very bottom.</div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="StudioShowYear" name="StudioShowYear" type="checkbox" is="emby-checkbox" />
+                                <span>Year</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">The year in the info line under the title (Ratings, Genre and Age Rating below also go in that line).</div>
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="TmdbApiKey">TMDb API key (optional)</label>
+                            <input id="TmdbApiKey" name="TmdbApiKey" type="password" is="emby-input" autocomplete="off" />
+                            <div class="fieldDescription">Empty = the key Jellyfin's own TMDb plugin uses.</div>
+                        </div>
+                    </div>
                     <h2>Poster Options</h2>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
+                    <div class="checkboxContainer checkboxContainer-withDescription bpBtttrOnly">
                         <label class="emby-checkbox-label">
                             <input id="EnableTrendTags" name="EnableTrendTags" type="checkbox" is="emby-checkbox" />
                             <span>Trend Tags</span>
                         </label>
-                        <div class="fieldDescription checkboxFieldDescription">Trending, New, IMDb #3</div>
+                        <div class="fieldDescription checkboxFieldDescription">Trending, New, IMDb #3 (Better Posters style only)</div>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
@@ -29,17 +64,17 @@
                             <input id="EnableGenre" name="EnableGenre" type="checkbox" is="emby-checkbox" />
                             <span>Genre</span>
                         </label>
-                        <div class="fieldDescription checkboxFieldDescription">Genre label at bottom</div>
+                        <div class="fieldDescription checkboxFieldDescription">Genre at the bottom</div>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
                             <input id="EnableRating" name="EnableRating" type="checkbox" is="emby-checkbox" />
                             <span>Ratings</span>
                         </label>
-                        <div class="fieldDescription checkboxFieldDescription">Star rating at bottom</div>
+                        <div class="fieldDescription checkboxFieldDescription">Star rating at the bottom (Studio style: your server's community rating)</div>
                     </div>
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="RatingSource">Ratings Source</label>
+                    <div class="selectContainer bpBtttrOnly">
+                        <label class="selectLabel" for="RatingSource">Ratings Source (Better Posters style)</label>
                         <select is="emby-select" id="RatingSource" name="RatingSource" class="emby-select-withcolor emby-select">
                             <option value="Average">Average</option>
                             <option value="Imdb">IMDb (/10)</option>
@@ -59,7 +94,7 @@
                         <div class="fieldDescription checkboxFieldDescription">PG-13, TV-MA, R</div>
                     </div>
                     <div class="selectContainer">
-                        <label class="selectLabel" for="Language">Language</label>
+                        <label class="selectLabel" for="Language">Language (posters, and title logos in the Studio style)</label>
                         <select is="emby-select" id="Language" name="Language" class="emby-select-withcolor emby-select">
                             <option value="English">English</option>
                             <option value="Spanish">Español</option>
@@ -105,7 +140,7 @@
                         <button is="emby-button" type="button" id="bpRunNow" class="raised emby-button" style="flex:1 1 12em"><span>Update posters now</span></button>
                         <button is="emby-button" type="button" id="bpRunAll" class="raised emby-button" style="flex:1 1 12em"><span>Replace every poster now</span></button>
                     </div>
-                    <div class="fieldDescription" id="bpStatus" style="margin-top:.6em">"Update posters now" only touches titles that changed (it also runs every night). "Replace every poster now" downloads all of them again, e.g. after changing the options above.</div>
+                    <div class="fieldDescription" id="bpStatus" style="margin-top:.6em">"Update posters now" only touches titles that changed (it also runs every night). "Replace every poster now" makes all of them again. Changing the options above is picked up by the next run on its own.</div>
                 </form>
             </div>
         </div>
@@ -118,10 +153,24 @@
                 return document.querySelector('#' + id);
             }
 
+            // show only the options that apply to the chosen style
+            function betterPostersStyle() {
+                var studio = betterPostersElement('Style').value === 'Studio';
+                Array.prototype.forEach.call(document.querySelectorAll('#BetterPostersConfigPage .bpStudioOnly'), function (e) { e.style.display = studio ? '' : 'none'; });
+                Array.prototype.forEach.call(document.querySelectorAll('#BetterPostersConfigPage .bpBtttrOnly'), function (e) { e.style.display = studio ? 'none' : ''; });
+            }
+            betterPostersElement('Style').addEventListener('change', betterPostersStyle);
+
             document.querySelector('#BetterPostersConfigPage')
                 .addEventListener('pageshow', function() {
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(BetterPostersConfig.pluginUniqueId).then(function (config) {
+                        betterPostersElement('Style').value = config.Style || 'Studio';
+                        betterPostersElement('StudioLogo').checked = config.StudioLogo !== false;
+                        betterPostersElement('StudioFade').value = config.StudioFade == null ? 70 : config.StudioFade;
+                        betterPostersElement('StudioShowYear').checked = config.StudioShowYear !== false;
+                        betterPostersElement('TmdbApiKey').value = config.TmdbApiKey || '';
+                        betterPostersStyle();
                         betterPostersElement('EnableTrendTags').checked = config.EnableTrendTags;
                         betterPostersElement('EnableQualityTags').checked = config.EnableQualityTags;
                         betterPostersElement('EnableGenre').checked = config.EnableGenre;
@@ -139,6 +188,11 @@
                 .addEventListener('submit', function(e) {
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(BetterPostersConfig.pluginUniqueId).then(function (config) {
+                        config.Style = betterPostersElement('Style').value;
+                        config.StudioLogo = betterPostersElement('StudioLogo').checked;
+                        config.StudioFade = Math.max(0, Math.min(100, parseInt(betterPostersElement('StudioFade').value, 10) || 0));
+                        config.StudioShowYear = betterPostersElement('StudioShowYear').checked;
+                        config.TmdbApiKey = betterPostersElement('TmdbApiKey').value.trim();
                         config.EnableTrendTags = betterPostersElement('EnableTrendTags').checked;
                         config.EnableQualityTags = betterPostersElement('EnableQualityTags').checked;
                         config.EnableGenre = betterPostersElement('EnableGenre').checked;
