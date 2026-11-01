@@ -148,13 +148,16 @@ public static class QualityBadgeRenderer
             return 0;
         }
 
+        // a tag row: changed from the untagged poster AND mostly the tag's own colour (the tagged poster also
+        // darkens the art under the tag, which changes it too, but that isn't the tag's colour)
         var w = tagged.Width;
+        var h = tagged.Height;
+        var tagColour = tagged[w / 2, Math.Min(2, h - 1)];
         var bottom = 0;
         var gap = 0;
-        for (var y = 0; y < tagged.Height / 4; y++)
+        for (var y = 0; y < h / 4; y++)
         {
-            var differ = 0;
-            var samples = 0;
+            int changed = 0, tagLike = 0, samples = 0;
             for (var x = w / 4; x < w * 3 / 4; x += 2)
             {
                 samples++;
@@ -162,24 +165,31 @@ public static class QualityBadgeRenderer
                 var b = plain[x, y];
                 if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) > 45)
                 {
-                    differ++;
+                    changed++;
+                }
+
+                if (Math.Abs(a.R - tagColour.R) + Math.Abs(a.G - tagColour.G) + Math.Abs(a.B - tagColour.B) < 36)
+                {
+                    tagLike++;
                 }
             }
 
-            // a tag row: most of the middle changed (JPEG noise on busy art changes only scattered pixels)
-            if (differ > samples * 0.5)
+            if (changed > samples * 0.5 && tagLike > samples * 0.4)
             {
                 bottom = y + 1;
                 gap = 0;
             }
-            else if (bottom > 0 && ++gap > 3)
+            else if (bottom > 0)
             {
-                // the tag is one block from the top edge: a long run of identical rows means it's over
-                break;
+                // the tag's text interrupts it for a few rows; a longer run means the tag is over
+                if (++gap > h / 20)
+                {
+                    break;
+                }
             }
-            else if (bottom == 0 && y > tagged.Height / 30)
+            else if (y > h / 30)
             {
-                // nothing at the very top: no tag
+                // nothing at the very top: no tag on this title
                 return 0;
             }
         }
