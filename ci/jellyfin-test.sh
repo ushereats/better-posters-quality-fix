@@ -73,8 +73,17 @@ TOKEN=$(api POST /Users/AuthenticateByName '{"Username":"ci","Pw":"ci"}' | pytho
 if [ "$MODE" = repo ]; then
   echo "== install from the plugin repository: $SRC"
   api POST /Repositories "[{\"Name\":\"Better Posters QF\",\"Url\":\"$SRC\",\"Enabled\":true}]" >/dev/null
-  api GET "/Packages" > "$OUT/packages.json"
-  VER=$(python3 -c "import json; p=[x for x in json.load(open('$OUT/packages.json')) if x['guid']=='$GUID'][0]; print(p['versions'][0]['version'])")
+  api GET /Repositories | tee "$OUT/repositories.json"; echo
+  VER=""
+  for i in $(seq 1 20); do
+    api GET "/Packages" > "$OUT/packages.json" || true
+    VER=$(python3 -c "import json; p=[x for x in json.load(open('$OUT/packages.json')) if x.get('guid','').lower()=='$GUID']; print(p[0]['versions'][0]['version'] if p else '')" 2>/dev/null || true)
+    [ -n "$VER" ] && break; sleep 3
+  done
+  if [ -z "$VER" ]; then
+    echo "::error::plugin not in the catalog"; python3 -c "import json; [print(x.get('name'), x.get('guid')) for x in json.load(open('$OUT/packages.json'))]" | head -20
+    curl -sS "$SRC" | head -c 400; echo; sudo journalctl -u jellyfin --no-pager | grep -i "repositor\|manifest\|package" | tail -20; exit 1
+  fi
   echo "newest in catalog: $VER" | tee "$OUT/install.txt"
   api POST "/Packages/Installed/Better%20Posters%20(Local%20Quality%20Fix)?assemblyGuid=$GUID&version=$VER" >/dev/null
   for i in $(seq 1 60); do ls $PLUG 2>/dev/null | grep -qi "Better" && break; sleep 2; done

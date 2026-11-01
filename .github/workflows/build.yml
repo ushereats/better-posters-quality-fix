@@ -1,6 +1,6 @@
 name: Build, test and release
 
-# Every push to master: build, unit tests, badge previews on real btttr.cc posters, a real Jellyfin 12 test
+# Every push to main: build, unit tests, badge previews on real btttr.cc posters, a real Jellyfin 12 test
 # (install, scan, run the poster task, look at the posters), then a release + manifest.json update, then a
 # check that Jellyfin installs that release from the plugin repository like a user would.
 on:
@@ -87,7 +87,9 @@ jobs:
           git commit -m "manifest: $V [skip ci]" && git push origin HEAD:main
 
   install-check:
-    needs: release
+    # main: right after the release; dev branches: against the release already in the manifest
+    needs: [build, release]
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
