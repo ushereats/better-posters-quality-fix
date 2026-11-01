@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Studio posters look closer to SpatialPosters: a tag hanging from the top edge (the studio or network, e.g. "Adult Swim", or the genre; setting "Tag at the top"), coloured from the poster itself, with the quality badges under it; bigger title logos; a soft grey info line.
+
+## [1.1.21] - 2026-11-01
+
+### Added
 - **Studio posters** (the new default style): each title's clean artwork from TMDb (no text printed on it), its logo placed at the bottom over a soft fade, an info line underneath (rating, year, genre, age rating) and your real quality badges at the top. Titles TMDb has no clean artwork for get the btttr.cc poster as before. Switch back to btttr.cc's posters under Poster Style.
 - Settings for the studio style: title logo on/off (off = the title in text), how dark the fade is, year on/off, and an optional TMDb key (empty = the one Jellyfin's TMDb plugin uses). Genre, Ratings, Age Rating and Language apply to both styles.
 
