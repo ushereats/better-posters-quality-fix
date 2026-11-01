@@ -354,7 +354,11 @@
                     if (page.isConnected && !page.classList.contains('hide')) poll = setTimeout(check, st.running ? 1200 : 8000);
                 }
                 function check() {
-                    return ApiClient.getJSON(ApiClient.getUrl('BetterPosters/Status')).then(show, function () {
+                    return ApiClient.getJSON(ApiClient.getUrl('BetterPosters/Status')).then(function (r) {
+                        // Jellyfin may send the names as Running / Total…: read them either way
+                        var st = {}; Object.keys(r || {}).forEach(function (k) { st[k.charAt(0).toLowerCase() + k.slice(1)] = r[k]; });
+                        show(st);
+                    }, function () {
                         $('bpStatusLine').textContent = 'Ready';
                         $('bpStatusSub').textContent = 'Restart Jellyfin once after updating the plugin to see live progress here.';
                     });
