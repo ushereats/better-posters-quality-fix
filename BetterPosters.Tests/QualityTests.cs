@@ -17,8 +17,14 @@ public class QualityTests
         Type = MediaStreamType.Video,
         Width = w,
         Height = h,
-        VideoRangeType = range
+        Title = "range:" + range
     };
+
+    // the range type is computed by Jellyfin from colour fields; the tests carry it in the title instead
+    private static VideoRangeType RangeOf(MediaStream v)
+        => v.Title is { } t && t.StartsWith("range:", StringComparison.Ordinal) ? Enum.Parse<VideoRangeType>(t[6..) : VideoRangeType.SDR;
+
+    private static QualityInfo? Q(params MediaStream[] streams) => QualityInfo.FromStreams(streams, RangeOf);
 
     private static MediaStream Audio(string codec, string? profile = null) => new()
     {
@@ -37,13 +43,13 @@ public class QualityTests
     [InlineData(720, 480, "SD")]
     public void Resolution_FromFrameSize(int w, int h, string expected)
     {
-        Assert.Equal(expected, QualityInfo.FromStreams([Video(w, h)])!.Resolution);
+        Assert.Equal(expected, Q(Video(w, h))!.Resolution);
     }
 
     [Fact]
     public void DolbyVision_HidesHdrWord_AndShowsVision()
     {
-        var q = QualityInfo.FromStreams([Video(3840, 2160, VideoRangeType.DOVIWithHDR10), Audio("truehd", "TrueHD + Dolby Atmos")])!;
+        var q = Q(Video(3840, 2160, VideoRangeType.DOVIWithHDR10), Audio("truehd", "TrueHD + Dolby Atmos"))!;
         Assert.True(q.DolbyVision);
         Assert.Null(q.Hdr);
         Assert.Equal("ATMOS", q.DolbyAudio);
@@ -56,20 +62,20 @@ public class QualityTests
     [InlineData(VideoRangeType.SDR, null)]
     public void Hdr_Kinds(VideoRangeType range, string? expected)
     {
-        Assert.Equal(expected, QualityInfo.FromStreams([Video(3840, 2160, range)])!.Hdr);
+        Assert.Equal(expected, Q(Video(3840, 2160, range))!.Hdr);
     }
 
     [Fact]
     public void DolbyDigital_FromEac3()
     {
-        Assert.Equal("DIGITAL", QualityInfo.FromStreams([Video(1920, 1080), Audio("eac3")])!.DolbyAudio);
-        Assert.Null(QualityInfo.FromStreams([Video(1920, 1080), Audio("aac")])!.DolbyAudio);
+        Assert.Equal("DIGITAL", Q(Video(1920, 1080), Audio("eac3"))!.DolbyAudio);
+        Assert.Null(Q(Video(1920, 1080), Audio("aac"))!.DolbyAudio);
     }
 
     [Fact]
     public void NoVideo_IsNull()
     {
-        Assert.Null(QualityInfo.FromStreams([Audio("aac")]));
+        Assert.Null(Q(Audio("aac")));
     }
 
     [Fact]

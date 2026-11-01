@@ -31,9 +31,13 @@ public sealed record QualityInfo(string? Resolution, string? Hdr, bool DolbyVisi
     /// </summary>
     /// <param name="streams">The item's media streams.</param>
     /// <returns>The quality, or null when there is no video stream.</returns>
-    public static QualityInfo? FromStreams(IReadOnlyList<MediaStream> streams)
+    public static QualityInfo? FromStreams(IReadOnlyList<MediaStream> streams) => FromStreams(streams, null);
+
+    // rangeOf: tests supply the range type directly (Jellyfin works it out from the stream's colour fields)
+    internal static QualityInfo? FromStreams(IReadOnlyList<MediaStream> streams, Func<MediaStream, VideoRangeType>? rangeOf)
     {
         ArgumentNullException.ThrowIfNull(streams);
+        rangeOf ??= s => s.VideoRangeType;
 
         var video = streams
             .Where(s => s.Type == MediaStreamType.Video && !s.IsExternal)
@@ -45,8 +49,9 @@ public sealed record QualityInfo(string? Resolution, string? Hdr, bool DolbyVisi
         }
 
         var resolution = GetResolution(video.Width ?? 0, video.Height ?? 0);
-        var dolbyVision = IsDolbyVision(video.VideoRangeType);
-        var hdr = dolbyVision ? null : GetHdr(video);
+        var range = rangeOf(video);
+        var dolbyVision = IsDolbyVision(range);
+        var hdr = dolbyVision ? null : GetHdr(video, range);
 
         string? audio = null;
         foreach (var a in streams.Where(s => s.Type == MediaStreamType.Audio))
@@ -128,9 +133,9 @@ public sealed record QualityInfo(string? Resolution, string? Hdr, bool DolbyVisi
         or VideoRangeType.DOVIWithHLG
         or VideoRangeType.DOVIWithSDR;
 
-    private static string? GetHdr(MediaStream video)
+    private static string? GetHdr(MediaStream video, VideoRangeType range)
     {
-        switch (video.VideoRangeType)
+        switch (range)
         {
             case VideoRangeType.HDR10Plus:
                 return "HDR10+";

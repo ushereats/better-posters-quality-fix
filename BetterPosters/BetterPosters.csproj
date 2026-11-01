@@ -63,4 +63,7 @@
     <EmbeddedResource Include="Fonts\FunnelSans-*.ttf" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="BetterPosters.Tests" />
+  </ItemGroup>
 </Project>
