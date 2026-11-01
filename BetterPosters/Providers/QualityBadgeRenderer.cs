@@ -329,13 +329,16 @@ public static class QualityBadgeRenderer
         private readonly float _textWidth;
         private readonly Image<Rgba32> _poster;
 
+        // btttr.cc's letters sit tighter and heavier than plain Arial bold
+        private const float Tracking = -0.05f;
+
         public ChipPart(string text, float s, Image<Rgba32> poster)
         {
             _text = text;
             _s = s;
             _poster = poster;
             _font = ChipFont(11.3f * s);
-            _textWidth = Advance(text, _font, 0);
+            _textWidth = Advance(text, _font, Tracking);
             Width = Math.Max(15 * s, _textWidth + (7.2f * s));
         }
 
@@ -352,18 +355,29 @@ public static class QualityBadgeRenderer
             }
 
             using var under = _poster.Clone(c => c.Crop(rect));
-            using var glass = under.Clone(c => c.GaussianBlur(Math.Max(1f, 2.5f * _s)).Fill(Color.FromRgba(238, 238, 236, 222)));
+            using var glass = under.Clone(c => c.GaussianBlur(Math.Max(1f, 2.5f * _s)).Fill(Color.FromRgba(240, 240, 238, 230)));
             using var letters = under.Clone(c => c.Fill(Color.FromRgba(0, 0, 0, 118)));
             using var mask = new Image<Rgba32>(rect.Width, rect.Height);
-            mask.Mutate(c => c.DrawText(
-                new RichTextOptions(_font)
+            mask.Mutate(c =>
+            {
+                var pen = Pens.Solid(Color.White, 0.55f * _s);
+                var cx = (rect.Width - _textWidth) / 2f;
+                foreach (var ch in _text)
                 {
-                    Origin = new PointF((rect.Width - _textWidth) / 2f, (rect.Height / 2f) + (0.3f * _s)),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Center
-                },
-                _text,
-                Color.White));
+                    var t = ch.ToString();
+                    c.DrawText(
+                        new RichTextOptions(_font)
+                        {
+                            Origin = new PointF(cx, (rect.Height / 2f) + (0.3f * _s)),
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Center
+                        },
+                        t,
+                        Brushes.Solid(Color.White),
+                        pen);
+                    cx += Advance(t, _font, 0) + (Tracking * _font.Size);
+                }
+            });
             using var shape = new Image<Rgba32>(rect.Width, rect.Height);
             shape.Mutate(c => c.Fill(Color.White, RoundedRect(0, 0, rect.Width, rect.Height, 3f * _s)));
 
