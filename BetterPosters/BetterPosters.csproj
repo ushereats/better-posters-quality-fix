@@ -61,6 +61,7 @@
     <None Remove="Configuration\configPage.html" />
     <EmbeddedResource Include="Configuration\configPage.html" />
     <EmbeddedResource Include="Fonts\FunnelSans-*.ttf" />
+    <EmbeddedResource Include="Fonts\Arimo-700.ttf" />
   </ItemGroup>
 
   <ItemGroup>

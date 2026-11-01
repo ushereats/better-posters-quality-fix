@@ -73,14 +73,15 @@ public class BetterPostersUpdateTask : IScheduledTask, IConfigurableScheduledTas
             IsVirtualItem = false
         });
 
-        var counts = new Dictionary<PosterResult, int>();
-        for (var i = 0; i < items.Count; i++)
+        var counts = new System.Collections.Concurrent.ConcurrentDictionary<PosterResult, int>();
+        var done = 0;
+        // three at a time (the poster service allows three downloads at once)
+        await Parallel.ForEachAsync(items, new ParallelOptions { MaxDegreeOfParallelism = 3, CancellationToken = cancellationToken }, async (item, ct) =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var result = await _posters.ApplyAsync(items[i], force, cancellationToken).ConfigureAwait(false);
-            counts[result] = counts.GetValueOrDefault(result) + 1;
-            progress.Report((i + 1) * 100D / items.Count);
-        }
+            var result = await _posters.ApplyAsync(item, force, ct).ConfigureAwait(false);
+            counts.AddOrUpdate(result, 1, (_, n) => n + 1);
+            progress.Report(Interlocked.Increment(ref done) * 100D / items.Count);
+        }).ConfigureAwait(false);
 
         progress.Report(100);
         _logger.LogInformation(
