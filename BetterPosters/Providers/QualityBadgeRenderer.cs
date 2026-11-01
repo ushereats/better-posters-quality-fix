@@ -160,19 +160,19 @@ public static class QualityBadgeRenderer
                 samples++;
                 var a = tagged[x, y];
                 var b = plain[x, y];
-                if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) > 60)
+                if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) > 90)
                 {
                     differ++;
                 }
             }
 
             // a tag row: most of the middle changed (JPEG noise on busy art changes only scattered pixels)
-            if (differ > samples * 0.3)
+            if (differ > samples * 0.5)
             {
                 bottom = y + 1;
                 gap = 0;
             }
-            else if (bottom > 0 && ++gap > Math.Max(6, tagged.Height / 60))
+            else if (bottom > 0 && ++gap > 3)
             {
                 // the tag is one block from the top edge: a long run of identical rows means it's over
                 break;
