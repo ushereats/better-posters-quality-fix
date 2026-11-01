@@ -160,7 +160,7 @@ public static class QualityBadgeRenderer
                 samples++;
                 var a = tagged[x, y];
                 var b = plain[x, y];
-                if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) > 90)
+                if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) > 45)
                 {
                     differ++;
                 }
