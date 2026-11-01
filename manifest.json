@@ -9,6 +9,14 @@
         "imageUrl": "https://raw.githubusercontent.com/ushereats/better-posters-quality-fix/main/Assets/Catalog.png",
         "versions": [
             {
+                "version": "1.1.33.0",
+                "changelog": "\n### Added\n- **Season and collection posters** (studio style): each season gets its own TMDb artwork (or the show's) with the show's logo and \"Season 2\" in the info line; collections get their TMDb collection artwork with the name and the number of films. Quality badges come from the season's episodes / the collection's best film.\n- **Live progress** on the settings page: how far a run is, which title it's on, time left, and how many posters were made, already up to date, not found or failed.\n- **New settings page**: a status card with the Update / Replace buttons at the top, the style picked from cards, sections (Look, Badges, Updating, Advanced) you can jump between, only the options for the chosen style, and a save bar that shows up when something changed.\n\n### Changed\n- Artwork downloaded from TMDb is kept on the server, so rebuilding posters after a settings change downloads nothing again (unused files are cleared after 120 days, and the cache never grows past 4 GB).\n- TMDb's limits are respected: a few requests at a time, spaced out, and retried with growing waits when TMDb is busy or briefly down, so big libraries no longer end up with gaps.\n\n### Changed\n- The 4K / 1440p / 1080p / 720p chip is now a copy of btttr.cc's: frosted light glass with the poster faintly behind it, the letters cut out of it (the poster shows through them, darkened), an Arial-style heavy bold (Arimo, built in), btttr.cc's size, corners and position.\n- Studio style: titles with no clean artwork on TMDb now get TMDb's full-size official poster (with just the badges added) instead of btttr.cc's 500 px one, so they're sharp too.\n- Updating is about 3x faster: three titles at a time.",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://github.com/ushereats/better-posters-quality-fix/releases/download/1.1.33/better-posters-quality-fix_1.1.33.0.zip",
+                "checksum": "eeb707de5e57db2bb8f32d854a3e4339",
+                "timestamp": "2026-11-01T15:12:05Z"
+            },
+            {
                 "version": "1.1.32.0",
                 "changelog": "\n### Added\n- **Season and collection posters** (studio style): each season gets its own TMDb artwork (or the show's) with the show's logo and \"Season 2\" in the info line; collections get their TMDb collection artwork with the name and the number of films. Quality badges come from the season's episodes / the collection's best film.\n- **Live progress** on the settings page: how far a run is, which title it's on, time left, and how many posters were made, already up to date, not found or failed.\n- **New settings page**: a status card with the Update / Replace buttons at the top, the style picked from cards, sections (Look, Badges, Updating, Advanced) you can jump between, only the options for the chosen style, and a save bar that shows up when something changed.\n\n### Changed\n- Artwork downloaded from TMDb is kept on the server, so rebuilding posters after a settings change downloads nothing again (unused files are cleared after 120 days, and the cache never grows past 4 GB).\n- TMDb's limits are respected: a few requests at a time, spaced out, and retried with growing waits when TMDb is busy or briefly down, so big libraries no longer end up with gaps.\n\n### Changed\n- The 4K / 1440p / 1080p / 720p chip is now a copy of btttr.cc's: frosted light glass with the poster faintly behind it, the letters cut out of it (the poster shows through them, darkened), an Arial-style heavy bold (Arimo, built in), btttr.cc's size, corners and position.\n- Studio style: titles with no clean artwork on TMDb now get TMDb's full-size official poster (with just the badges added) instead of btttr.cc's 500 px one, so they're sharp too.\n- Updating is about 3x faster: three titles at a time.",
                 "targetAbi": "12.0.0.0",
@@ -39,14 +47,6 @@
                 "sourceUrl": "https://github.com/ushereats/better-posters-quality-fix/releases/download/1.1.23/better-posters-quality-fix_1.1.23.0.zip",
                 "checksum": "55fe5d96c19d19213fc5983781170881",
                 "timestamp": "2026-11-01T10:29:31Z"
-            },
-            {
-                "version": "1.1.21.0",
-                "changelog": "\n### Added\n- **Studio posters** (the new default style): each title's clean artwork from TMDb (no text printed on it), its logo placed at the bottom over a soft fade, an info line underneath (rating, year, genre, age rating) and your real quality badges at the top. Titles TMDb has no clean artwork for get the btttr.cc poster as before. Switch back to btttr.cc's posters under Poster Style.\n- Settings for the studio style: title logo on/off (off = the title in text), how dark the fade is, year on/off, and an optional TMDb key (empty = the one Jellyfin's TMDb plugin uses). Genre, Ratings, Age Rating and Language apply to both styles.\n\n### Changed\n- The 4K / 1440p / 1080p / 720p chip now matches btttr.cc's own quality badge: its size, padding and corners, and near-black letters cut out of the chip.",
-                "targetAbi": "12.0.0.0",
-                "sourceUrl": "https://github.com/ushereats/better-posters-quality-fix/releases/download/1.1.21/better-posters-quality-fix_1.1.21.0.zip",
-                "checksum": "9f2b3bf654b87a95a41723959e670ab8",
-                "timestamp": "2026-11-01T10:09:35Z"
             }
         ]
     }
