@@ -335,7 +335,17 @@ public static class QualityBadgeRenderer
         {
             var h = 14.8f * _s;
             ctx.Fill(Color.FromRgba(228, 229, 227, 238), RoundedRect(x, centerY - (h / 2f), Width, h, 3f * _s));
-            DrawText(ctx, _text, _font, 0, x + ((Width - _textWidth) / 2f), centerY + (0.35f * _s), Color.FromRgb(16, 16, 16));
+            // btttr.cc's text is cut out of the chip, the poster faintly showing through: punch the letters out,
+            // then fill them nearly black so they read on any artwork
+            var options = new RichTextOptions(_font)
+            {
+                Origin = new PointF(x + ((Width - _textWidth) / 2f), centerY + (0.35f * _s)),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var cut = new DrawingOptions { GraphicsOptions = new GraphicsOptions { AlphaCompositionMode = PixelAlphaCompositionMode.DestOut } };
+            ctx.DrawText(cut, options, _text, Brushes.Solid(Color.Black), null);
+            ctx.DrawText(options, _text, Color.FromRgba(10, 10, 10, 205));
         }
     }
 
