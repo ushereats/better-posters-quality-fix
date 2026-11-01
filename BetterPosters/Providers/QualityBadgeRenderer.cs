@@ -180,21 +180,47 @@ public static class QualityBadgeRenderer
         return new Polygon(new LinearLineSegment(pts.ToArray()));
     }
 
+    // letter spacing (em): only the wide-spaced small capitals use it; tiny values are left to the font
     private static float Advance(string text, Font font, float tracking)
     {
-        var size = TextMeasurer.MeasureAdvance(text, new TextOptions(font) { Tracking = tracking });
-        return size.Width;
+        if (Math.Abs(tracking) < 0.05f)
+        {
+            return TextMeasurer.MeasureAdvance(text, new TextOptions(font)).Width;
+        }
+
+        var w = 0f;
+        foreach (var ch in text)
+        {
+            w += TextMeasurer.MeasureAdvance(ch.ToString(), new TextOptions(font)).Width + (tracking * font.Size);
+        }
+
+        return w - (tracking * font.Size);
     }
 
     private static void DrawText(IImageProcessingContext ctx, string text, Font font, float tracking, float x, float centerY, Color color)
+    {
+        if (Math.Abs(tracking) < 0.05f)
+        {
+            DrawRun(ctx, text, font, x, centerY, color);
+            return;
+        }
+
+        foreach (var ch in text)
+        {
+            var c = ch.ToString();
+            DrawRun(ctx, c, font, x, centerY, color);
+            x += TextMeasurer.MeasureAdvance(c, new TextOptions(font)).Width + (tracking * font.Size);
+        }
+    }
+
+    private static void DrawRun(IImageProcessingContext ctx, string text, Font font, float x, float centerY, Color color)
     {
         ctx.DrawText(
             new RichTextOptions(font)
             {
                 Origin = new PointF(x, centerY),
                 HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center,
-                Tracking = tracking
+                VerticalAlignment = VerticalAlignment.Center
             },
             text,
             color);
