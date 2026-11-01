@@ -22,7 +22,7 @@ public class QualityTests
 
     // the range type is computed by Jellyfin from colour fields; the tests carry it in the title instead
     private static VideoRangeType RangeOf(MediaStream v)
-        => v.Title is { } t && t.StartsWith("range:", StringComparison.Ordinal) ? Enum.Parse<VideoRangeType>(t[6..) : VideoRangeType.SDR;
+        => v.Title is { } t && t.StartsWith("range:", StringComparison.Ordinal) ? Enum.Parse<VideoRangeType>(t[6..]) : VideoRangeType.SDR;
 
     private static QualityInfo? Q(params MediaStream[] streams) => QualityInfo.FromStreams(streams, RangeOf);
 
