@@ -19,21 +19,22 @@ public class BetterPosterUrlBuilderTests
 
     [Theory]
     [InlineData(true, true, false, false, "poster")]
-    [InlineData(true, true, true, false, "poster-q")]
+    [InlineData(true, true, true, false, "poster")]
     [InlineData(true, true, false, true, "poster-a")]
-    [InlineData(true, true, true, true, "poster-qa")]
+    [InlineData(true, true, true, true, "poster-a")]
     [InlineData(false, true, false, false, "poster-r")]
-    [InlineData(false, true, true, false, "poster-rq")]
+    [InlineData(false, true, true, false, "poster-r")]
     [InlineData(false, true, false, true, "poster-ra")]
-    [InlineData(false, true, true, true, "poster-rqa")]
+    [InlineData(false, true, true, true, "poster-ra")]
     [InlineData(true, false, false, false, "poster-g")]
-    [InlineData(true, false, true, false, "poster-gq")]
+    [InlineData(true, false, true, false, "poster-g")]
     [InlineData(true, false, false, true, "poster-ga")]
-    [InlineData(true, false, true, true, "poster-gqa")]
+    [InlineData(true, false, true, true, "poster-ga")]
     [InlineData(false, false, false, false, "poster-n")]
-    [InlineData(false, false, true, false, "poster-nq")]
+    [InlineData(false, false, true, false, "poster-n")]
     [InlineData(false, false, false, true, "poster-na")]
-    [InlineData(false, false, true, true, "poster-nqa")]
+    [InlineData(false, false, true, true, "poster-na")]
+    // quality is never asked from btttr.cc: the real quality badges are drawn locally from the file
     public void Build_WithPosterOptionCombination_UsesExpectedPath(
         bool enableGenre,
         bool enableRating,
