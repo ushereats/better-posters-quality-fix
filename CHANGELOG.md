@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- New titles get their poster a few seconds after Jellyfin has their details (was a fixed 20-second wait that could miss titles still being filled in; those are now checked again every few seconds for up to 5 minutes).
+
 ### Added
 - **Season and collection posters** (studio style): each season gets its own TMDb artwork (or the show's) with the show's logo and "Season 2" in the info line; collections get their TMDb collection artwork with the name and the number of films. Quality badges come from the season's episodes / the collection's best film.
 - **Live progress** on the settings page: how far a run is, which title it's on, time left, and how many posters were made, already up to date, not found or failed.

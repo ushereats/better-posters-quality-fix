@@ -29,7 +29,7 @@ A fork of [Better Posters](https://github.com/neurekadev/better-posters). The or
 - **Dolby:** Dolby logo with **ATMOS** and/or **VISION** underneath for Dolby Atmos and Dolby Vision, and **DIGITAL** for Dolby Digital / Digital Plus / TrueHD.
 - **Shows:** Uses the best quality among the show's newest episodes.
 - **Ushereats Theme Look:** Badges in the same style as the [Ushereats Theme](https://github.com/ushereats/ushereats-modern-theme), centred at the top with a soft shadow. When a trend tag ("Oscar Nominee", "Emmy Winner"...) is on the poster, the badges sit just under it.
-- **Automatic:** New and upgraded titles get their poster within about a minute. A nightly task catches everything else and only re-downloads titles whose poster or quality changed.
+- **Automatic:** New and upgraded titles get their poster a few seconds after Jellyfin has their details. A nightly task catches everything else and only re-downloads titles whose poster or quality changed.
 - **Every Library:** Covers all movie and show libraries by default. No per-library image fetcher setup needed.
 - **Poster Options:** Trend tags, genre, ratings (average, IMDb, TMDB, Rotten Tomatoes, Metacritic, Trakt, Letterboxd or Roger Ebert) and age rating.
 - **Multi-Language Posters:** English, Spanish, French, German, Portuguese, Italian, Dutch, Polish, Russian, Turkish, Arabic, Japanese, Korean, Chinese, Hindi, Swedish or Czech.
@@ -98,7 +98,7 @@ The **Update Better Posters (Local Quality Fix)** task runs every night at 4 AM.
 
 ### Option A: Do Nothing
 
-After installing, posters are applied on their own: new titles within a minute of being added, everything else on the next nightly run.
+After installing, posters are applied on their own: new titles a few seconds after Jellyfin has their details, everything else on the next nightly run.
 
 ### Option B: Apply Now
 
