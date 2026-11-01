@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Badges no longer depend on fonts being installed on the server (the font is built in).
 
 ### Changed
-- New badge look matching the Ushereats theme: Dolby logo with ATMOS / VISION, HDR / HDR10+ / HLG, and a light 4K / 1440p / 1080p / 720p chip, centred at the top with a soft shadow.
+- New badge look matching the Ushereats theme: Dolby logo with ATMOS / VISION, HDR / HDR10+ / HLG, and a light 4K / 1440p / 1080p / 720p chip, centred at the top with a soft shadow. With trend tags on ("Oscar Nominee"...), the badges sit just under the tag instead of over it.
 - Dolby Atmos and Dolby Digital are detected from the audio tracks.
 - Shows use the best of their newest episodes.
 - New titles (and upgraded files) get their poster within a minute; the task runs nightly and only re-downloads titles that changed.

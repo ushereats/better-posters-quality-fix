@@ -25,8 +25,7 @@ echo "== library"
 sudo mkdir -p /srv/media/movies /srv/media/shows && sudo chown -R "$USER" /srv/media
 M1="/srv/media/movies/The Shawshank Redemption (1994)"; mkdir -p "$M1"
 $FF -v error -y -f lavfi -i "testsrc2=s=3840x2160:d=1:r=24" -f lavfi -i "anullsrc=r=48000:cl=5.1" -t 1 \
-  -c:v libx265 -preset ultrafast -pix_fmt yuv420p10le \
-  -x265-params "colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:hdr10=1:master-display=G(13250,34500)B(7500,3000)R(34000,16000)WP(15635,16450)L(10000000,1):max-cll=1000,400:log-level=error" \
+  -c:v libx264 -preset ultrafast -profile:v high10 -pix_fmt yuv420p10le \
   -color_primaries bt2020 -color_trc smpte2084 -colorspace bt2020nc -c:a eac3 -b:a 384k "$M1/The Shawshank Redemption (1994).mkv"
 printf '<movie><title>The Shawshank Redemption</title><year>1994</year><imdbid>tt0111161</imdbid><uniqueid type="imdb" default="true">tt0111161</uniqueid></movie>' > "$M1/movie.nfo"
 M2="/srv/media/movies/Inception (2010)"; mkdir -p "$M2"
