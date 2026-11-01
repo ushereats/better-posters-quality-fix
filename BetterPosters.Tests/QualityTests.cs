@@ -199,7 +199,7 @@ public class QualityTests
         }
 
         var config = new BetterPosters.Configuration.PluginConfiguration { EnableAgeRating = true };
-        var info = new StudioInfo("Interstellar", 8.6f, 2014, "Adventure", "M");
+        var info = new StudioInfo("Interstellar", 8.6f, 2014, "Adventure", "M", "Paramount");
         var q = new QualityInfo("4K", null, true, "ATMOS");
         var withLogo = StudioPosterBuilder.Compose(art, logo, info, q, config);
         var withText = StudioPosterBuilder.Compose(art, null, info, new QualityInfo("1080p", null, false, null), config);

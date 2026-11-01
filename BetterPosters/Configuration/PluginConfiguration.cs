@@ -161,6 +161,21 @@ public enum PosterStyle
 }
 
 /// <summary>
+/// What the coloured tag at the top of a studio poster says.
+/// </summary>
+public enum StudioTag
+{
+    /// <summary>No tag.</summary>
+    None,
+
+    /// <summary>The studio (movies) or network (shows), e.g. "Adult Swim".</summary>
+    Studio,
+
+    /// <summary>The first genre.</summary>
+    Genre
+}
+
+/// <summary>
 /// Plugin configuration.
 /// </summary>
 public class PluginConfiguration : BasePluginConfiguration
@@ -184,7 +199,13 @@ public class PluginConfiguration : BasePluginConfiguration
         StudioFade = 70;
         StudioShowYear = true;
         TmdbApiKey = string.Empty;
+        StudioTopTag = StudioTag.Studio;
     }
+
+    /// <summary>
+    /// Gets or sets what the coloured tag at the top of studio posters says (coloured from the poster).
+    /// </summary>
+    public StudioTag StudioTopTag { get; set; }
 
     /// <summary>
     /// Gets or sets how posters are made (Studio: built here from TMDb artwork; BetterPosters: btttr.cc's).

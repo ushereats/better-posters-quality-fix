@@ -19,6 +19,15 @@
                         <div class="fieldDescription">Studio posters use each title's clean artwork (no text printed on it) with its logo placed over a soft fade at the bottom, and an info line underneath. Titles with no clean artwork on TMDb get the Better Posters one instead.</div>
                     </div>
                     <div class="bpStudioOnly">
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="StudioTopTag">Tag at the top</label>
+                            <select is="emby-select" id="StudioTopTag" name="StudioTopTag" class="emby-select-withcolor emby-select">
+                                <option value="Studio">Studio / network (e.g. Adult Swim, Netflix)</option>
+                                <option value="Genre">Genre</option>
+                                <option value="None">None</option>
+                            </select>
+                            <div class="fieldDescription">A tag hanging from the top edge, coloured from the poster itself. The quality badges sit under it.</div>
+                        </div>
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <label class="emby-checkbox-label">
                                 <input id="StudioLogo" name="StudioLogo" type="checkbox" is="emby-checkbox" />
@@ -166,6 +175,7 @@
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(BetterPostersConfig.pluginUniqueId).then(function (config) {
                         betterPostersElement('Style').value = config.Style || 'Studio';
+                        betterPostersElement('StudioTopTag').value = config.StudioTopTag || 'Studio';
                         betterPostersElement('StudioLogo').checked = config.StudioLogo !== false;
                         betterPostersElement('StudioFade').value = config.StudioFade == null ? 70 : config.StudioFade;
                         betterPostersElement('StudioShowYear').checked = config.StudioShowYear !== false;
@@ -189,6 +199,7 @@
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(BetterPostersConfig.pluginUniqueId).then(function (config) {
                         config.Style = betterPostersElement('Style').value;
+                        config.StudioTopTag = betterPostersElement('StudioTopTag').value;
                         config.StudioLogo = betterPostersElement('StudioLogo').checked;
                         config.StudioFade = Math.max(0, Math.min(100, parseInt(betterPostersElement('StudioFade').value, 10) || 0));
                         config.StudioShowYear = betterPostersElement('StudioShowYear').checked;

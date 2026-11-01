@@ -237,7 +237,7 @@ public sealed class PosterService : IDisposable
 
     // everything in the settings that changes how a studio poster looks
     private static string StyleKey(PluginConfiguration c) => c.Style == PosterStyle.Studio
-        ? string.Join(',', "studio", c.StudioLogo, c.StudioFade, c.StudioShowYear, c.EnableGenre, c.EnableRating, c.EnableAgeRating, c.Language)
+        ? string.Join(',', "studio2", c.StudioTopTag, c.StudioLogo, c.StudioFade, c.StudioShowYear, c.EnableGenre, c.EnableRating, c.EnableAgeRating, c.Language)
         : "btttr";
 
     /// <summary>

@@ -31,7 +31,8 @@ namespace BetterPosters.Providers;
 /// <param name="Year">Year, or null.</param>
 /// <param name="Genre">First genre, or null.</param>
 /// <param name="AgeRating">Age rating (PG-13, TV-MA...), or null.</param>
-public sealed record StudioInfo(string Title, float? Rating, int? Year, string? Genre, string? AgeRating);
+/// <param name="Tag">The coloured tag at the top (studio / network / genre), or null.</param>
+public sealed record StudioInfo(string Title, float? Rating, int? Year, string? Genre, string? AgeRating, string? Tag = null);
 
 /// <summary>
 /// Studio posters: the title's clean artwork (no text on it) from TMDb, its logo placed at the bottom over a soft
@@ -138,12 +139,20 @@ public sealed class StudioPosterBuilder
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(config);
+        var tag = config.StudioTopTag switch
+        {
+            StudioTag.Studio => item.Studios?.FirstOrDefault(),
+            StudioTag.Genre => item.Genres?.FirstOrDefault(),
+            _ => null
+        };
         return new StudioInfo(
             item.Name ?? string.Empty,
             config.EnableRating && item.CommunityRating is > 0 ? item.CommunityRating : null,
             config.StudioShowYear ? item.ProductionYear : null,
-            config.EnableGenre ? item.Genres?.FirstOrDefault() : null,
-            config.EnableAgeRating && !string.IsNullOrWhiteSpace(item.OfficialRating) ? item.OfficialRating : null);
+            // the genre isn't repeated in the info line when it's already the tag
+            config.EnableGenre && config.StudioTopTag != StudioTag.Genre ? item.Genres?.FirstOrDefault() : null,
+            config.EnableAgeRating && !string.IsNullOrWhiteSpace(item.OfficialRating) ? item.OfficialRating : null,
+            string.IsNullOrWhiteSpace(tag) ? null : tag.Trim());
     }
 
     /// <summary>
@@ -192,7 +201,7 @@ public sealed class StudioPosterBuilder
         }
 
         // title: logo (or text) centred, its bottom just above the info line
-        var titleBottom = Height * (meta.Count > 0 ? 0.872f : 0.925f);
+        var titleBottom = Height * (meta.Count > 0 ? 0.878f : 0.93f);
         var drewLogo = false;
         if (logoBytes is not null)
         {
@@ -200,7 +209,7 @@ public sealed class StudioPosterBuilder
             {
                 using var logo = Image.Load<Rgba32>(logoBytes);
                 Trim(logo);
-                var k = Math.Min(Width * 0.74f / logo.Width, Height * 0.17f / logo.Height);
+                var k = Math.Min(Width * 0.8f / logo.Width, Height * 0.22f / logo.Height);
                 var w = Math.Max(1, (int)Math.Round(logo.Width * k));
                 var h = Math.Max(1, (int)Math.Round(logo.Height * k));
                 logo.Mutate(x => x.Resize(w, h));
@@ -224,9 +233,15 @@ public sealed class StudioPosterBuilder
             DrawMeta(image, meta, Height * 0.918f);
         }
 
+        var below = 0;
+        if (info.Tag is { } tag && Drawable(tag))
+        {
+            below = DrawTag(image, tag, Accent(image));
+        }
+
         if (quality is not null && quality.HasAnything && config.EnableQualityTags)
         {
-            QualityBadgeRenderer.Draw(image, quality);
+            QualityBadgeRenderer.Draw(image, quality, below);
         }
 
         using var output = new MemoryStream();
@@ -265,7 +280,7 @@ public sealed class StudioPosterBuilder
 
     private static void DrawMeta(Image<Rgba32> image, List<(bool Star, string Text)> parts, float centerY)
     {
-        var font = QualityBadgeRenderer.Font(700, Height * 0.0255f);
+        var font = QualityBadgeRenderer.Font(700, Height * 0.027f);
         var size = font.Size;
         var gap = size * 0.55f;
         var dot = "•";
@@ -281,7 +296,7 @@ public sealed class StudioPosterBuilder
             }
         }
 
-        var colour = Color.FromRgba(255, 255, 255, 225);
+        var colour = Color.FromRgba(255, 255, 255, 190);
         using var layer = new Image<Rgba32>(Width, Height);
         var x = (Width - total) / 2f;
         layer.Mutate(ctx =>
@@ -290,7 +305,7 @@ public sealed class StudioPosterBuilder
             {
                 if (parts[i].Star)
                 {
-                    ctx.Fill(Color.FromRgb(255, 196, 46), Star(x + (starW / 2f), centerY - (size * 0.04f), starW / 2f));
+                    ctx.Fill(colour, Star(x + (starW / 2f), centerY - (size * 0.04f), starW / 2f));
                     x += starW + (size * 0.28f);
                 }
 
@@ -299,12 +314,119 @@ public sealed class StudioPosterBuilder
                 if (i < parts.Count - 1)
                 {
                     x += gap;
-                    QualityBadgeRenderer.DrawText(ctx, dot, font, 0, x, centerY, Color.FromRgba(255, 255, 255, 150));
+                    QualityBadgeRenderer.DrawText(ctx, dot, font, 0, x, centerY, Color.FromRgba(255, 255, 255, 140));
                     x += dotW + gap;
                 }
             }
         });
         Shadowed(image, layer, new Point(0, 0), 0.6f, 4f, 2);
+    }
+
+    // the coloured tag hanging from the top edge (rounded at the bottom), white text; returns its bottom
+    private static int DrawTag(Image<Rgba32> image, string text, Color fill)
+    {
+        var size = Height * 0.03f;
+        var font = QualityBadgeRenderer.Font(700, size);
+        var maxText = Width * 0.62f;
+        while (size > Height * 0.02f && QualityBadgeRenderer.Advance(text, font, 0) > maxText)
+        {
+            size *= 0.93f;
+            font = QualityBadgeRenderer.Font(700, size);
+        }
+
+        var textW = QualityBadgeRenderer.Advance(text, font, 0);
+        if (textW > maxText)
+        {
+            return 0;   // still too long: no tag rather than a squashed one
+        }
+
+        var padX = Height * 0.03f;
+        var h = Height * 0.058f;
+        var r = Height * 0.016f;
+        var w = textW + (2 * padX);
+        var x = (Width - w) / 2f;
+        using var layer = new Image<Rgba32>(Width, (int)Math.Ceiling(h + (r * 2)));
+        layer.Mutate(ctx =>
+        {
+            // drawn from above the edge so only the bottom corners show as rounded
+            ctx.Fill(fill, RoundedRect(x, -r, w, h + r, r));
+            QualityBadgeRenderer.DrawText(ctx, text, font, 0, x + padX, h / 2f, Color.White);
+        });
+        Shadowed(image, layer, new Point(0, 0), 0.35f, 6f, 2);
+        return (int)Math.Ceiling(h);
+    }
+
+    // the poster's main colour (the most common strong colour), darkened enough for white text
+    private static Color Accent(Image<Rgba32> image)
+    {
+        var bins = new double[12, 4];   // hue bins: weight, r, g, b
+        image.ProcessPixelRows(rows =>
+        {
+            for (var y = 0; y < rows.Height; y += 6)
+            {
+                var row = rows.GetRowSpan(y);
+                for (var x = 0; x < row.Length; x += 6)
+                {
+                    var p = row[x];
+                    float r = p.R / 255f, g = p.G / 255f, b = p.B / 255f;
+                    float max = Math.Max(r, Math.Max(g, b)), min = Math.Min(r, Math.Min(g, b)), d = max - min;
+                    if (max < 0.22f || d / max < 0.35f)
+                    {
+                        continue;
+                    }
+
+                    var hue = d == 0 ? 0 : max == r ? ((g - b) / d % 6) : max == g ? ((b - r) / d) + 2 : ((r - g) / d) + 4;
+                    var bin = ((int)Math.Floor((hue < 0 ? hue + 6 : hue) * 2)) % 12;
+                    var wgt = d * max;
+                    bins[bin, 0] += wgt;
+                    bins[bin, 1] += p.R * wgt;
+                    bins[bin, 2] += p.G * wgt;
+                    bins[bin, 3] += p.B * wgt;
+                }
+            }
+        });
+
+        var best = 0;
+        for (var i = 1; i < 12; i++)
+        {
+            if (bins[i, 0] > bins[best, 0]) { best = i; }
+        }
+
+        if (bins[best, 0] <= 0)
+        {
+            return Color.FromRgb(38, 38, 42);   // no strong colour: dark grey
+        }
+
+        double cr = bins[best, 1] / bins[best, 0], cg = bins[best, 2] / bins[best, 0], cb = bins[best, 3] / bins[best, 0];
+        // white text needs it darkish: scale down until its brightness is at most ~50%
+        var lum = ((0.2126 * cr) + (0.7152 * cg) + (0.0722 * cb)) / 255;
+        var k = lum > 0.42 ? 0.42 / lum : 1;
+        // and a little more vivid, like the posters it comes from
+        double mean = (cr + cg + cb) / 3;
+        cr = Math.Clamp(mean + ((cr - mean) * 1.15), 0, 255) * k;
+        cg = Math.Clamp(mean + ((cg - mean) * 1.15), 0, 255) * k;
+        cb = Math.Clamp(mean + ((cb - mean) * 1.15), 0, 255) * k;
+        return Color.FromRgb((byte)cr, (byte)cg, (byte)cb);
+    }
+
+    private static IPath RoundedRect(float x, float y, float w, float h, float r)
+    {
+        r = Math.Min(r, Math.Min(w, h) / 2f);
+        var pts = new List<PointF>();
+        void Arc(float cx, float cy, float start)
+        {
+            for (var i = 0; i <= 8; i++)
+            {
+                var a = (start + (90f * i / 8f)) * MathF.PI / 180f;
+                pts.Add(new PointF(cx + (r * MathF.Cos(a)), cy + (r * MathF.Sin(a))));
+            }
+        }
+
+        Arc(x + w - r, y + r, 270);
+        Arc(x + w - r, y + h - r, 0);
+        Arc(x + r, y + h - r, 90);
+        Arc(x + r, y + r, 180);
+        return new Polygon(new LinearLineSegment(pts.ToArray()));
     }
 
     private static void DrawTitle(Image<Rgba32> image, string title, float bottom)
