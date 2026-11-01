@@ -360,22 +360,24 @@ public static class QualityBadgeRenderer
             using var mask = new Image<Rgba32>(rect.Width, rect.Height);
             mask.Mutate(c =>
             {
-                var pen = Pens.Solid(Color.White, 0.55f * _s);
-                var cx = (rect.Width - _textWidth) / 2f;
-                foreach (var ch in _text)
+                // drawn twice, a hair apart sideways: the heavier weight of btttr.cc's letters
+                foreach (var dx in new[] { -0.22f * _s, 0.22f * _s })
                 {
-                    var t = ch.ToString();
-                    c.DrawText(
-                        new RichTextOptions(_font)
-                        {
-                            Origin = new PointF(cx, (rect.Height / 2f) + (0.3f * _s)),
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            VerticalAlignment = VerticalAlignment.Center
-                        },
-                        t,
-                        Brushes.Solid(Color.White),
-                        pen);
-                    cx += Advance(t, _font, 0) + (Tracking * _font.Size);
+                    var cx = ((rect.Width - _textWidth) / 2f) + dx;
+                    foreach (var ch in _text)
+                    {
+                        var t = ch.ToString();
+                        c.DrawText(
+                            new RichTextOptions(_font)
+                            {
+                                Origin = new PointF(cx, (rect.Height / 2f) + (0.3f * _s)),
+                                HorizontalAlignment = HorizontalAlignment.Left,
+                                VerticalAlignment = VerticalAlignment.Center
+                            },
+                            t,
+                            Color.White);
+                        cx += Advance(t, _font, 0) + (Tracking * _font.Size);
+                    }
                 }
             });
             using var shape = new Image<Rgba32>(rect.Width, rect.Height);
