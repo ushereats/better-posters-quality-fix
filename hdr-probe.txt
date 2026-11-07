@@ -1,0 +1,1 @@
+stream|pix_fmt=yuv420p10le|color_transfer=smpte2084|color_primaries=bt2020

@@ -1,0 +1,1 @@
+jellyfin-server 12.4+ubu2404

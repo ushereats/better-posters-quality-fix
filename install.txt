@@ -1,0 +1,7 @@
+newest in catalog: 1.1.37.0
+total 16
+drwxr-xr-x 4 jellyfin jellyfin 4096 Nov  7 14:57 .
+drwxr-x--- 8 jellyfin adm      4096 Nov  7 14:57 ..
+-rw-r--r-- 1 jellyfin jellyfin    0 Nov  7 14:57 .jellyfin-plugin
+drwxr-xr-x 2 jellyfin jellyfin 4096 Nov  7 14:57 Better Posters (Local Quality Fix)_1.1.37.0
+drwxr-xr-x 2 jellyfin jellyfin 4096 Nov  7 14:57 configurations

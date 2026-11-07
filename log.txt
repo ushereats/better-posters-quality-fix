@@ -1,0 +1,16 @@
+Nov 07 14:57:33 runnervm7aw5e jellyfin[3212]: [14:57:33] [INF] No local manifest exists for plugin Better Posters (Local Quality Fix). Skipping manifest reconciliation.
+Nov 07 14:57:33 runnervm7aw5e jellyfin[3212]: [14:57:33] [INF] Plugin installed: Better Posters (Local Quality Fix) 1.1.37.0
+Nov 07 14:57:34 runnervm7aw5e jellyfin[3353]: [14:57:34] [INF] Loaded assembly SixLabors.ImageSharp, Version=3.0.0.0, Culture=neutral, PublicKeyToken=d998eea7b14cab13 from /var/lib/jellyfin/plugins/Better Posters (Local Quality Fix)_1.1.37.0/SixLabors.ImageSharp.dll
+Nov 07 14:57:34 runnervm7aw5e jellyfin[3353]: [14:57:34] [INF] Loaded assembly BetterPosters, Version=1.1.37.0, Culture=neutral, PublicKeyToken=null from /var/lib/jellyfin/plugins/Better Posters (Local Quality Fix)_1.1.37.0/BetterPosters.dll
+Nov 07 14:57:34 runnervm7aw5e jellyfin[3353]: [14:57:34] [INF] Loaded assembly SixLabors.Fonts, Version=2.0.0.0, Culture=neutral, PublicKeyToken=d998eea7b14cab13 from /var/lib/jellyfin/plugins/Better Posters (Local Quality Fix)_1.1.37.0/SixLabors.Fonts.dll
+Nov 07 14:57:34 runnervm7aw5e jellyfin[3353]: [14:57:34] [INF] Loaded assembly SixLabors.ImageSharp.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=d998eea7b14cab13 from /var/lib/jellyfin/plugins/Better Posters (Local Quality Fix)_1.1.37.0/SixLabors.ImageSharp.Drawing.dll
+Nov 07 14:57:34 runnervm7aw5e jellyfin[3353]: [14:57:34] [INF] Loaded plugin: Better Posters (Local Quality Fix) 1.1.37.0
+Nov 07 14:57:35 runnervm7aw5e jellyfin[3353]: [14:57:35] [INF] Daily trigger for Update Better Posters (Local Quality Fix) set to fire at 2026-11-08 04:00:00.000 +00:00, which is 13:02:24.8223905 from now.
+Nov 07 14:57:42 runnervm7aw5e jellyfin[3353]: [14:57:42] [INF] Better Posters: new poster for Season 1
+Nov 07 14:57:43 runnervm7aw5e jellyfin[3353]: [14:57:43] [INF] Better Posters: new poster for Breaking Bad
+Nov 07 14:57:47 runnervm7aw5e jellyfin[3353]: [14:57:47] [INF] Better Posters: new poster for Breaking Bad
+Nov 07 14:57:47 runnervm7aw5e jellyfin[3353]: [14:57:47] [INF] Better Posters: new poster for Season 1
+Nov 07 14:57:48 runnervm7aw5e jellyfin[3353]: [14:57:48] [INF] Better Posters: new poster for Inception
+Nov 07 14:57:49 runnervm7aw5e jellyfin[3353]: [14:57:49] [INF] Better Posters: new poster for The Shawshank Redemption
+Nov 07 14:57:57 runnervm7aw5e jellyfin[3353]: [14:57:57] [INF] Better Posters: 0 updated, 4 already up to date, 0 no poster found, 0 skipped, 0 failed (of 4)
+Nov 07 14:57:57 runnervm7aw5e jellyfin[3353]: [14:57:57] [INF] Update Better Posters (Local Quality Fix) Completed after 0 minute(s) and 0 seconds
