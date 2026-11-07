@@ -1,0 +1,10 @@
+Nov 07 14:55:57 runnervm7aw5e jellyfin[3986]: [14:55:57] [INF] Loaded plugin: Better Posters (Local Quality Fix) 1.1.38.0
+Nov 07 14:55:58 runnervm7aw5e jellyfin[3986]: [14:55:58] [INF] Daily trigger for Update Better Posters (Local Quality Fix) set to fire at 2026-11-08 04:00:00.000 +00:00, which is 13:04:01.5373350 from now.
+Nov 07 14:56:05 runnervm7aw5e jellyfin[3986]: [14:56:05] [INF] Better Posters: no poster for Inception yet, trying again in 00:10:00
+Nov 07 14:56:09 runnervm7aw5e jellyfin[3986]: [14:56:09] [INF] Better Posters: new poster for Inception
+Nov 07 14:56:11 runnervm7aw5e jellyfin[3986]: [14:56:11] [INF] Better Posters: new poster for The Shawshank Redemption
+Nov 07 14:56:25 runnervm7aw5e jellyfin[3986]: [14:56:25] [INF] Better Posters: new poster for Season 1
+Nov 07 14:56:28 runnervm7aw5e jellyfin[3986]: [14:56:28] [INF] Better Posters: new poster for Season 1
+Nov 07 14:56:29 runnervm7aw5e jellyfin[3986]: [14:56:29] [INF] Better Posters: new poster for Breaking Bad
+Nov 07 14:56:37 runnervm7aw5e jellyfin[3986]: [14:56:37] [INF] Better Posters: 0 updated, 4 already up to date, 0 no poster found, 0 skipped, 0 failed (of 4)
+Nov 07 14:56:37 runnervm7aw5e jellyfin[3986]: [14:56:37] [INF] Update Better Posters (Local Quality Fix) Completed after 0 minute(s) and 0 seconds

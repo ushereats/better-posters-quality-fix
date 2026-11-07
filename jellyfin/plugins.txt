@@ -1,0 +1,7 @@
+AudioDB 12.4.0.0 Active
+Better Posters (Local Quality Fix) 1.1.38.0 Active
+ListenBrainz Similarity Provider 12.4.0.0 Active
+MusicBrainz 12.4.0.0 Active
+OMDb 12.4.0.0 Active
+Studio Images 12.4.0.0 Active
+TMDb 12.4.0.0 Active
